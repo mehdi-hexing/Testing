@@ -1271,5 +1271,3 @@ async function HTML(hostname, 网站图标, token) {
     headers: { "content-type": "text/html;charset=UTF-8" } 
   });
     }
-
-}
