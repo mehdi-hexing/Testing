@@ -111,7 +111,6 @@ export default {
       }
 
       try {
-        // *** MODIFICATION: Changed lang=zh-CN to lang=en ***
         const response = await fetch(`http://ip-api.com/json/${ip}?lang=en`); 
 
         if (!response.ok) { 
@@ -155,7 +154,11 @@ export default {
         const URL = URLs[Math.floor(Math.random() * URLs.length)]; 
         return envKey === 'URL302' ? Response.redirect(URL, 302) : fetch(new Request(URL, request)); 
       } else if (env.TOKEN) { 
-        return new Response(await nginx(), { 
+        // *** MODIFICATION: nginx() call is now problematic if nginx is commented out ***
+        // For now, to avoid runtime error if TOKEN is set, let's return a simple text response.
+        // If syntax error is fixed, this part needs to be restored or nginx() uncommented.
+        // return new Response(await nginx(), { 
+        return new Response("nginx function is currently commented out for diagnostics.", {
           headers: {
             'Content-Type': 'text/html; charset=UTF-8', 
           },
@@ -321,34 +324,35 @@ async function 双重哈希(文本) {
   return 第二次十六进制.toLowerCase(); 
 }
 
-async function nginx() { 
-  const text = \`
-    <!DOCTYPE html>
-    <html>
-    <head>
-    <title>Welcome to nginx!</title>
-    <style>
-        body {
-            width: 35em;
-            margin: 0 auto;
-            font-family: Tahoma, Verdana, Arial, sans-serif;
-        }
-    </style>
-    </head>
-    <body>
-    <h1>Welcome to nginx!</h1>
-    <p>If you see this page, the nginx web server is successfully installed and
-    working. Further configuration is required.</p>
-    <p>For online documentation and support please refer to
-    <a href="http://nginx.org/">nginx.org</a>.<br/>
-    Commercial support is available at
-    <a href="http://nginx.com/">nginx.com</a>.</p>
-    <p><em>Thank you for using nginx.</em></p>
-    </body>
-    </html>
-    \` 
-  return text; 
-}
+// *** MODIFICATION: nginx() function is commented out for diagnostics ***
+// async function nginx() { 
+//   const text = \`
+//     <!DOCTYPE html>
+//     <html>
+//     <head>
+//     <title>Welcome to nginx!</title>
+//     <style>
+//         body {
+//             width: 35em;
+//             margin: 0 auto;
+//             font-family: Tahoma, Verdana, Arial, sans-serif;
+//         }
+//     </style>
+//     </head>
+//     <body>
+//     <h1>Welcome to nginx!</h1>
+//     <p>If you see this page, the nginx web server is successfully installed and
+//     working. Further configuration is required.</p>
+//     <p>For online documentation and support please refer to
+//     <a href="http://nginx.org/">nginx.org</a>.<br/>
+//     Commercial support is available at
+//     <a href="http://nginx.com/">nginx.com</a>.</p>
+//     <p><em>Thank you for using nginx.</em></p>
+//     </body>
+//     </html>
+//     \`; 
+//   return text; 
+// }
 
 async function HTML(hostname, 网站图标, token) {
   const html = \`<!DOCTYPE html>
@@ -566,7 +570,7 @@ async function HTML(hostname, 网站图标, token) {
     document.addEventListener('DOMContentLoaded', function() { 
       pageLoadTimestamp = calculateTimestamp(); 
       const singleIpInput = document.getElementById('proxyip'); 
-      const rangeIpInput = document.getElementById('proxyipRange'); // Changed to textarea
+      const rangeIpInput = document.getElementById('proxyipRange'); 
       singleIpInput.focus(); 
       
       const urlParams = new URLSearchParams(window.location.search); 
@@ -596,8 +600,6 @@ async function HTML(hostname, 网站图标, token) {
       }
       
       singleIpInput.addEventListener('keypress', function(event) { if (event.key === 'Enter' && !isChecking) { checkInputs(); } }); 
-      // For textarea, Enter usually means newline, so we don't add keypress listener for Enter to submit
-      // rangeIpInput.addEventListener('keypress', function(event) { if (event.key === 'Enter' && !isChecking) { checkInputs(); } });
       
       document.addEventListener('click', function(event) { 
         if (event.target.classList.contains('copy-btn')) { 
@@ -641,7 +643,6 @@ async function HTML(hostname, 网站图标, token) {
       return ipv4Regex.test(input) || ipv6Regex.test(input) || ipv6WithPortRegex.test(input) || ipv4WithPortRegex.test(input); 
     }
 
-    // *** MODIFIED parseIPRange (removed internal toast) ***
     function parseIPRange(rangeInput) {
         const ips = [];
         rangeInput = rangeInput.trim();
@@ -649,7 +650,7 @@ async function HTML(hostname, 网站图标, token) {
             const baseIp = rangeInput.split('/')[0];
             const baseParts = baseIp.split('.');
             if (baseParts.length === 4 ) {
-                for (let i = 1; i <= 255; i++) { // Original logic: 1-255. Standard /24 often 0-255 for host part.
+                for (let i = 1; i <= 255; i++) { 
                     ips.push(\`\${baseParts[0]}.\${baseParts[1]}.\${baseParts[2]}.\${i}\`);
                 }
             }
@@ -666,7 +667,7 @@ async function HTML(hostname, 网站图标, token) {
                     for (let i = startOctet; i <= endOctet; i++) {
                         ips.push(\`\${prefix}.\${i}\`);
                     }
-                } // Removed internal toast here
+                } 
             }
         }
         return ips;
@@ -681,12 +682,11 @@ async function HTML(hostname, 网站图标, token) {
       return processed; 
     }
 
-    // *** MODIFIED checkInputs (for multiline range and other minor adjustments) ***
     async function checkInputs() {
       if (isChecking) return;
 
       const singleIpInputEl = document.getElementById('proxyip');
-      const rangeIpInputEl = document.getElementById('proxyipRange'); // Now a textarea
+      const rangeIpInputEl = document.getElementById('proxyipRange'); 
       const resultDiv = document.getElementById('result');
       const rangeResultCard = document.getElementById('rangeResultCard');
       const rangeResultSummary = document.getElementById('rangeResultSummary');
@@ -698,7 +698,7 @@ async function HTML(hostname, 网站图标, token) {
 
       const rawSingleInput = singleIpInputEl.value;
       let singleIpToTest = preprocessInput(rawSingleInput);
-      const rawRangeInput = rangeIpInputEl.value; // Keep rawRangeInput for multiline
+      const rawRangeInput = rangeIpInputEl.value; 
 
       if (singleIpToTest && singleIpToTest !== rawSingleInput) {
         singleIpInputEl.value = singleIpToTest;
@@ -734,8 +734,7 @@ async function HTML(hostname, 网站图标, token) {
       
       resultDiv.innerHTML = ''; 
       resultDiv.classList.remove('show');
-      // Reset for range results will happen if rawRangeInput is processed
-
+      
       try {
         if (singleIpToTest) {
             if (isIPAddress(singleIpToTest)) {
@@ -745,7 +744,6 @@ async function HTML(hostname, 网站图标, token) {
             }
         }
 
-        // --- MODIFIED: Logic for processing multiple IP ranges ---
         if (rawRangeInput.trim()) {
           const rangeStrings = rawRangeInput.split('\n')
                                        .map(line => line.trim())
@@ -926,7 +924,7 @@ async function HTML(hostname, 网站图标, token) {
     async function fetchSingleIPCheck(proxyipWithOptionalPort) { 
         const requestUrl = \`./check?proxyip=\${encodeURIComponent(proxyipWithOptionalPort)}&token=\${TEMP_TOKEN}\`; 
         const response = await fetch(requestUrl); 
-        if (!response.ok) { // Handle non-JSON error responses from /check if needed
+        if (!response.ok) { 
             const errorText = await response.text();
             console.error("FetchSingleIPCheck Error:", response.status, errorText);
             throw new Error(\`Check failed with status \${response.status}: \${errorText.substring(0,100)}\`);
@@ -934,17 +932,16 @@ async function HTML(hostname, 网站图标, token) {
         return await response.json(); 
     }
 
-    // *** MODIFIED checkAndDisplaySingleIP (country on new line) ***
     async function checkAndDisplaySingleIP(proxyip, resultDiv) {
       const data = await fetchSingleIPCheck(proxyip);
       
       if (data.success) {
         const ipInfo = await getIPInfo(data.proxyIP); 
-        const asInfoHTML = formatIPInfo(ipInfo, false); // Will be (Full AS Info)
+        const asInfoHTML = formatIPInfo(ipInfo, false); 
         
         let countryName = 'N/A';
         if (ipInfo && ipInfo.status === 'success' && ipInfo.country) {
-            countryName = ipInfo.country; // Should be English
+            countryName = ipInfo.country; 
         }
 
         resultDiv.innerHTML = \` 
@@ -961,6 +958,7 @@ async function HTML(hostname, 网站图标, token) {
           <div class="result-card result-error">
             <h3>❌ ProxyIP Invalid</h3>
             <p><strong>🌐 IP Address:</strong> \${createCopyButton(proxyip)}</p>
+            <p><strong>🌍 Country:</strong> \${countryName}</p> 
             \${data.error ? \`<p><strong>Error:</strong> \${data.error}</p>\` : ''}
             <p><strong>🕒 Check Time:</strong> \${new Date(data.timestamp).toLocaleString()}</p>
           </div>
@@ -1047,7 +1045,7 @@ async function HTML(hostname, 网站图标, token) {
       try {
         const ipInfo = await getIPInfo(ip.split(':')[0]); 
         const infoElement = document.getElementById(\`ip-info-\${index}\`); 
-        if (infoElement) infoElement.innerHTML = formatIPInfo(ipInfo, true); // Uses modified formatIPInfo for [CC] (AS)
+        if (infoElement) infoElement.innerHTML = formatIPInfo(ipInfo, true); 
       } catch (error) { /* Fail silently for optional info */ } 
     }
 
@@ -1055,12 +1053,11 @@ async function HTML(hostname, 网站图标, token) {
       try {
         const cleanIP = ip.replace(/[\\[\\]]/g, ''); 
         const response = await fetch(\`./ip-info?ip=\${encodeURIComponent(cleanIP)}&token=\${TEMP_TOKEN}\`); 
-        if (!response.ok) return null; // Handle error from /ip-info
+        if (!response.ok) return null; 
         return await response.json(); 
       } catch (error) { console.error("getIPInfo error:", error); return null; } 
     }
 
-    // *** MODIFIED formatIPInfo (for [CC](AS) and single (AS)) ***
     function formatIPInfo(ipInfo, isShort = false) {
       if (!ipInfo || ipInfo.status !== 'success') {
         return '';
@@ -1069,7 +1066,6 @@ async function HTML(hostname, 网站图标, token) {
       const asData = ipInfo.as || null;
 
       if (isShort) {
-        // For lists (e.g., domain IPs): e.g., "[US] (AS Info Shortened)"
         const countryCode = ipInfo.countryCode || '';
         let asDisplayShort = null;
         if (asData) {
@@ -1085,13 +1081,10 @@ async function HTML(hostname, 网站图标, token) {
         }
 
         if (parts.length > 0) {
-          // Matching the style of the span it's inserted into
           return \`<span style="font-size:0.8em; color:#555;">\${parts.join(' ')}</span>\`;
         }
         return ''; 
       } else {
-        // For single IP check's AS info part (country is on a new line)
-        // Returns: "(Full AS Info)"
         if (!asData) return ''; 
         return \`<span style="font-size:0.85em; color:#555;">(\${asData})</span>\`;
       }
