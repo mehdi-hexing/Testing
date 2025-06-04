@@ -355,6 +355,7 @@ async function 双重哈希(文本) {
 // }
 
 async function HTML(hostname, 网站图标, token) {
+  const html = \<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
