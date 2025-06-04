@@ -111,7 +111,7 @@ export default {
       }
 
       try {
-        const response = await fetch(`http://ip-api.com/json/${ip}?lang=en`); // Ensure lang=en for English results
+        const response = await fetch(`http://ip-api.com/json/${ip}?lang=en`); // lang=en for English country names
         if (!response.ok) { //
           throw new Error(`HTTP error: ${response.status}`); //
         }
@@ -310,10 +310,10 @@ async function 整理(内容) { //
 
 async function 双重哈希(文本) { //
   const 编码器 = new TextEncoder(); //
-  const 第一次哈希 = await crypto.subtle.digest('SHA-256', 编码器.encode(文本)); //
+  const 第一次哈希 = await crypto.subtle.digest('MD5', 编码器.encode(文本)); //
   const 第一次哈希数组 = Array.from(new Uint8Array(第一次哈希)); //
   const 第一次十六进制 = 第一次哈希数组.map(字节 => 字节.toString(16).padStart(2, '0')).join(''); //
-  const 第二次哈希 = await crypto.subtle.digest('SHA-256', 编码器.encode(第一次十六进制.slice(7, 27))); //
+  const 第二次哈希 = await crypto.subtle.digest('MD5', 编码器.encode(第一次十六进制.slice(7, 27))); //
   const 第二次哈希数组 = Array.from(new Uint8Array(第二次哈希)); //
   const 第二次十六进制 = 第二次哈希数组.map(字节 => 字节.toString(16).padStart(2, '0')).join(''); //
   return 第二次十六进制.toLowerCase(); //
@@ -398,64 +398,8 @@ async function HTML(hostname, 网站图标, token) {
     .result-error { background-color: #f8d7da; border-left: 4px solid var(--error-color); color: #721c24; }
     .result-warning { background-color: #fff3cd; border-left: 4px solid var(--warning-color); color: #856404;}
     .copy-btn { background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 4px; font-size: 0.85em; cursor: pointer; margin-left: 8px;}
-    .toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 12px 20px; border-radius:var(--border-radius-sm); z-index:1000; opacity:0; transition: opacity 0.3s, bottom 0.3s; box-sizing: border-box;}
+    .toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 12px 20px; border-radius:var(--border-radius-sm); z-index:1000; opacity:0; transition: opacity 0.3s; box-sizing: border-box;}
     .toast.show { opacity:1; }
-    
-    /* Custom Confirmation Toast Styles */
-    .custom-confirmation-toast {
-      position: fixed;
-      bottom: -150px; /* Initially hidden well below screen */
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: #2c3e50; 
-      color: white;
-      padding: 18px 25px;
-      border-radius: 12px; 
-      z-index: 2000; /* Higher than normal toast */
-      box-shadow: 0 5px 20px rgba(0,0,0,0.25);
-      display: flex; 
-      flex-direction: column;
-      align-items: center;
-      transition: bottom 0.4s ease-in-out; 
-      max-width: 90%;
-      width: auto; 
-      min-width: 280px; 
-    }
-    .custom-confirmation-toast.show {
-      bottom: 20px; 
-    }
-    .custom-confirmation-toast p {
-      margin: 0 0 15px 0;
-      font-size: 0.95em;
-      text-align: center;
-    }
-    .custom-confirmation-toast .buttons {
-      display: flex;
-      justify-content: center;
-      width: 100%;
-    }
-    .custom-confirmation-toast button {
-      background-color: var(--primary-color);
-      color: white;
-      border: none;
-      padding: 10px 18px;
-      margin: 0 8px;
-      border-radius: var(--border-radius-sm);
-      cursor: pointer;
-      font-size: 0.9em;
-      min-width: 80px;
-      transition: background-color 0.2s;
-    }
-    .custom-confirmation-toast button:hover {
-      opacity: 0.85;
-    }
-    .custom-confirmation-toast button.no-btn {
-      background-color: #7f8c8d; 
-    }
-    .custom-confirmation-toast button.no-btn:hover {
-      background-color: #606b6d;
-    }
-
     #rangeResultChartContainer { margin-top: 15px; padding:10px; background-color: var(--bg-secondary); border-radius: var(--border-radius-sm); }
     #successfulRangeIPsList h6 { font-size: 0.95em; color: var(--text-primary); } 
     .api-docs { margin-top: 30px; padding: 25px; background: var(--bg-primary); border-radius: var(--border-radius); }
@@ -500,23 +444,6 @@ async function HTML(hostname, 网站图标, token) {
       .btn-secondary { padding: 7px 12px; font-size: 0.8rem; }
       .api-docs p code { word-break: break-all; }
       .toast { left: 10px; right: 10px; bottom: 10px; width: auto; max-width: calc(100% - 20px); text-align: center; }
-      .custom-confirmation-toast {
-        left: 15px;
-        right: 15px;
-        transform: translateX(0);
-        width: auto; 
-        bottom: -150px; 
-      }
-      .custom-confirmation-toast.show {
-        bottom: 15px;
-      }
-      .custom-confirmation-toast .buttons {
-        flex-direction: column; 
-      }
-      .custom-confirmation-toast button {
-        width: 100%;
-        margin: 5px 0; 
-      }
       .ip-grid { font-size: 0.9em; }
     }
     @media (max-width:500px){ 
@@ -577,18 +504,14 @@ async function HTML(hostname, 网站图标, token) {
   </div>
 
   <div id="toast" class="toast"></div>
+
   <script>
-    let isCheckingOverall = false; // General flag for any checking operation
+    let isChecking = false; 
     const ipCheckResults = new Map(); 
     let pageLoadTimestamp; 
     const TEMP_TOKEN = "${token}"; 
     let rangeChartInstance = null;
-    let currentSuccessfulRangeDataGlobal = []; // Holds all successful IPs from all ranges for chart/copy
-
-    // For sequential range processing with confirmation
-    let rangeQueueGlobal = [];
-    let currentRangeIndexGlobal = 0;
-    let isProcessingQueuedRanges = false; // Specific flag for sequential range processing
+    let currentSuccessfulRangeData = []; // Holds all successful IPs from all ranges for chart/copy
 
     function calculateTimestamp() { 
       const currentDate = new Date(); 
@@ -597,9 +520,9 @@ async function HTML(hostname, 网站图标, token) {
     
     document.addEventListener('DOMContentLoaded', function() { 
       pageLoadTimestamp = calculateTimestamp(); 
-      const singleIpInputEl = document.getElementById('proxyip'); 
-      const rangeIpInputEl = document.getElementById('proxyipRange'); 
-      singleIpInputEl.focus(); 
+      const singleIpInput = document.getElementById('proxyip'); 
+      const rangeIpInput = document.getElementById('proxyipRange'); // Now a textarea
+      singleIpInput.focus(); 
       
       const urlParams = new URLSearchParams(window.location.search); 
       let autoCheckValue = urlParams.get('autocheck'); 
@@ -607,29 +530,30 @@ async function HTML(hostname, 网站图标, token) {
           const currentPath = window.location.pathname; 
           if (currentPath.length > 1) { 
             const pathContent = decodeURIComponent(currentPath.substring(1)); 
-            if (isValidProxyIPFormat(pathContent)) { 
+            if (isValidProxyIPFormat(pathContent)) { // Check if path is a single IP/Domain
                 autoCheckValue = pathContent; 
-            } else if (pathContent.includes('/') || pathContent.includes('-') || pathContent.includes(',')) {
-                 rangeIpInputEl.value = pathContent; 
+            } else if (pathContent.includes('/') || pathContent.includes('-') || pathContent.includes(',')) { // Heuristic for range in path
+                 rangeIpInput.value = pathContent; // Put potential range into textarea
             }
           }
        }
 
-      if (autoCheckValue) { 
-        singleIpInputEl.value = autoCheckValue; 
+      if (autoCheckValue) { // If single IP/domain for autocheck
+        singleIpInput.value = autoCheckValue; 
         const newUrl = new URL(window.location); 
         newUrl.searchParams.delete('autocheck'); 
         newUrl.pathname = '/'; 
         window.history.replaceState({}, '', newUrl); 
-        setTimeout(() => { if (!isCheckingOverall) { checkInputs(); } }, 500); 
-      } else if (!rangeIpInputEl.value) { 
+        setTimeout(() => { if (!isChecking) { checkInputs(); } }, 500); 
+      } else if (!rangeIpInput.value) { // Only try localStorage if range textarea is also empty
         try { 
             const lastSearch = localStorage.getItem('lastProxyIP'); 
-            if (lastSearch) singleIpInputEl.value = lastSearch; 
+            if (lastSearch) singleIpInput.value = lastSearch; 
         } catch (e) { console.error('localStorage read error:', e); } 
       }
       
-      singleIpInputEl.addEventListener('keypress', function(event) { if (event.key === 'Enter' && !isCheckingOverall) { checkInputs(); } }); 
+      singleIpInput.addEventListener('keypress', function(event) { if (event.key === 'Enter' && !isChecking) { checkInputs(); } }); 
+      // For textarea, Enter key creates a new line, which is fine for multi-range input.
       
       document.addEventListener('click', function(event) { 
         if (event.target.classList.contains('copy-btn')) { 
@@ -645,50 +569,6 @@ async function HTML(hostname, 网站图标, token) {
       toast.classList.add('show'); 
       setTimeout(() => { toast.classList.remove('show'); }, duration); 
     }
-
-    function showConfirmationToast(message, onYes, onNo) {
-      let toastElement = document.getElementById('customConfirmationToast');
-      if (!toastElement) {
-        toastElement = document.createElement('div');
-        toastElement.id = 'customConfirmationToast';
-        toastElement.className = 'custom-confirmation-toast';
-        document.body.appendChild(toastElement);
-      }
-
-      toastElement.innerHTML = \`
-        <p>\${message}</p>
-        <div class="buttons">
-          <button id="confirmToastYes">Yes</button>
-          <button id="confirmToastNo" class="no-btn">No</button>
-        </div>
-      \`;
-
-      const yesButton = toastElement.querySelector('#confirmToastYes');
-      const noButton = toastElement.querySelector('#confirmToastNo');
-
-      // Clone and replace to remove previous listeners effectively
-      const newYesButton = yesButton.cloneNode(true);
-      yesButton.parentNode.replaceChild(newYesButton, yesButton);
-      
-      const newNoButton = noButton.cloneNode(true);
-      noButton.parentNode.replaceChild(newNoButton, noButton);
-
-      newYesButton.onclick = () => {
-        toastElement.classList.remove('show');
-        if (onYes) onYes();
-      };
-      newNoButton.onclick = () => {
-        toastElement.classList.remove('show');
-        if (onNo) onNo();
-      };
-      
-      requestAnimationFrame(() => {
-          requestAnimationFrame(() => { // Double rAF for more reliable transition start
-            toastElement.classList.add('show');
-          });
-      });
-    }
-
 
     function copyToClipboard(text, element, successMessage = "Copied!") { 
       navigator.clipboard.writeText(text).then(() => { 
@@ -727,6 +607,8 @@ async function HTML(hostname, 网站图标, token) {
                 for (let i = 1; i <= 255; i++) {
                     ips.push(\`\${baseParts[0]}.\${baseParts[1]}.\${baseParts[2]}.\${i}\`);
                 }
+            } else {
+                 // showToast('Invalid CIDR format. Expected x.x.x.0/24.'); // Toast shown by caller
             }
         } 
         else if (/^(\\d{1,3}\\.){3}\\d{1,3}-\\d{1,3}$/.test(rangeInput)) {
@@ -742,9 +624,14 @@ async function HTML(hostname, 网站图标, token) {
                     for (let i = startOctet; i <= endOctet; i++) {
                         ips.push(\`\${prefix}.\${i}\`);
                     }
+                } else {
+                    // showToast('Invalid range in x.x.x.A-B format.'); // Toast shown by caller
                 }
+            } else {
+                 // showToast('Invalid x.x.x.A-B range format.'); // Toast shown by caller
             }
         }
+        // Returns empty array if format is not matched or invalid, caller should check length
         return ips;
     }
     
@@ -753,143 +640,8 @@ async function HTML(hostname, 网站图标, token) {
       return input.trim(); 
     }
 
-    function finalizeProcessing() {
-        const checkBtn = document.getElementById('checkBtn');
-        const btnText = checkBtn.querySelector('.btn-text');
-        const spinner = checkBtn.querySelector('.loading-spinner');
-        const copyRangeBtn = document.getElementById('copyRangeBtn');
-        const rangeResultSummaryEl = document.getElementById('rangeResultSummary');
-
-        isCheckingOverall = false;
-        isProcessingQueuedRanges = false;
-        checkBtn.disabled = false;
-        btnText.style.display = 'inline-block';
-        spinner.style.display = 'none';
-        rangeQueueGlobal = []; // Clear queue
-        currentRangeIndexGlobal = 0;
-
-        if (currentSuccessfulRangeDataGlobal.length > 0) {
-            updateRangeSuccessChart(currentSuccessfulRangeDataGlobal.map(item => item.ip + (item.port && parseInt(item.port) !== 443 ? ':' + item.port : '')));
-            if (copyRangeBtn) copyRangeBtn.style.display = 'inline-block';
-        }
-         if (rangeResultSummaryEl && rangeResultSummaryEl.innerHTML.startsWith("All ranges processed") && currentSuccessfulRangeDataGlobal.length === 0) {
-            // If all ranges processed and still no successful IPs, make sure a relevant message is there.
-            // The toast "No successful IPs found in any of the ranges." already covers this.
-        }
-
-    }
-
-    async function processSingleRange(rangeString, rangeIndex, totalRanges) {
-        const rangeResultSummaryEl = document.getElementById('rangeResultSummary');
-        const successfulRangeIPsListEl = document.getElementById('successfulRangeIPsList');
-        
-        showToast(\`Testing range \${rangeIndex + 1}/\${totalRanges}: \${rangeString}\`);
-        
-        if (successfulRangeIPsListEl) {
-            const rangeHeader = document.createElement('h6');
-            rangeHeader.textContent = \`Results for range: \${rangeString}\`;
-            rangeHeader.style.marginTop = (successfulRangeIPsListEl.children.length > 0) ? '20px' : '0'; // Add margin if not the first list section
-            rangeHeader.style.borderBottom = '1px dashed #ccc';
-            rangeHeader.style.paddingBottom = '4px';
-            rangeHeader.style.marginBottom = '8px';
-            successfulRangeIPsListEl.appendChild(rangeHeader);
-        }
-
-        const ipsInCurrentRange = parseIPRange(rangeString);
-        let currentRangeBatchSuccessData = []; 
-        let currentRangeSuccessCountForThisRange = 0;
-        let currentRangeCheckedCountForThisRange = 0;
-
-        if (ipsInCurrentRange.length > 0) {
-            const batchSize = 10;
-            for (let j = 0; j < ipsInCurrentRange.length; j += batchSize) {
-                if (!isProcessingQueuedRanges) break; // Stop if user cancelled via toast from previous range
-                const batch = ipsInCurrentRange.slice(j, j + batchSize);
-                const batchPromises = batch.map(ip =>
-                    fetchSingleIPCheck(ip + ':443')
-                    .then(async data => {
-                        currentRangeCheckedCountForThisRange++;
-                        if (data.success) {
-                            currentRangeSuccessCountForThisRange++;
-                            const cleanIpForGeo = data.proxyIP.split(':')[0];
-                            const geoData = await getIPInfo(cleanIpForGeo);
-                            const successEntry = { ip: data.proxyIP, port: data.portRemote, geo: geoData };
-                            currentSuccessfulRangeDataGlobal.push(successEntry); 
-                            currentRangeBatchSuccessData.push(successEntry); 
-                        }
-                        return data;
-                    })
-                    .catch(err => {
-                        currentRangeCheckedCountForThisRange++;
-                        console.error("Error checking IP in range:", ip, err);
-                        return { success: false, proxyIP: ip, error: err.message };
-                    })
-                );
-                await Promise.all(batchPromises);
-                if (rangeResultSummaryEl) {
-                    // Update summary dynamically. Could be more sophisticated to show overall progress.
-                     rangeResultSummaryEl.innerHTML = \`Range \${rangeIndex + 1}: Tested \${currentRangeCheckedCountForThisRange}/\${ipsInCurrentRange.length}. Overall Successful: \${currentSuccessfulRangeDataGlobal.length}\`;
-                }
-                
-                if (currentRangeBatchSuccessData.length > 0) {
-                    renderSuccessfulRangeIPsList(currentRangeBatchSuccessData, successfulRangeIPsListEl, false); 
-                    currentRangeBatchSuccessData = []; 
-                }
-            } // End batch loop
-             if(currentRangeSuccessCountForThisRange === 0 && successfulRangeIPsListEl && ipsInCurrentRange.length > 0) {
-                const noResultPara = document.createElement('p');
-                noResultPara.textContent = 'No successful IPs found in this range.';
-                noResultPara.style.fontSize = '0.85em'; noResultPara.style.color = '#777'; noResultPara.style.paddingLeft = '5px';
-                successfulRangeIPsListEl.appendChild(noResultPara);
-            }
-            showToast(\`Range '\${rangeString}' test complete. \${currentRangeSuccessCountForThisRange} of \${ipsInCurrentRange.length} IPs were successful.\`);
-
-        } else if (rangeString) { // Invalid range string
-            showToast(\`Invalid IP Range format or empty for: \${rangeString}\`);
-            if (successfulRangeIPsListEl) {
-                const errorPara = document.createElement('p');
-                errorPara.textContent = 'Invalid format or empty range.';
-                errorPara.style.fontSize = '0.85em'; errorPara.style.color = 'var(--error-color)'; errorPara.style.paddingLeft = '5px';
-                successfulRangeIPsListEl.appendChild(errorPara);
-            }
-        }
-    }
-
-    async function processRangeQueue() {
-        if (currentRangeIndexGlobal < rangeQueueGlobal.length && isProcessingQueuedRanges) {
-            const rangeStr = rangeQueueGlobal[currentRangeIndexGlobal];
-            await processSingleRange(rangeStr, currentRangeIndexGlobal, rangeQueueGlobal.length);
-            
-            currentRangeIndexGlobal++; // Move to next range for the next potential step
-
-            if (currentRangeIndexGlobal < rangeQueueGlobal.length && isProcessingQueuedRanges) {
-                // There are more ranges, ask for confirmation
-                showConfirmationToast(
-                    \`Do you want to start testing range \${currentRangeIndexGlobal + 1}/\${rangeQueueGlobal.length} ('\${rangeQueueGlobal[currentRangeIndexGlobal]}')?\`,
-                    async () => { // Yes
-                        await processRangeQueue(); // Continue with the next range
-                    },
-                    () => { // No
-                        showToast("Range processing stopped by user.");
-                        finalizeProcessing();
-                    }
-                );
-            } else { // All ranges in the queue are processed or processing was stopped earlier
-                if(isProcessingQueuedRanges) showToast("All IP ranges in the queue have been processed.");
-                finalizeProcessing();
-            }
-        } else { // No more ranges or processing stopped
-            if(isProcessingQueuedRanges && rangeQueueGlobal.length > 0) showToast("Finished processing all entered IP ranges.");
-            finalizeProcessing();
-        }
-    }
-
-
     async function checkInputs() {
-      if (isCheckingOverall) { // Prevent re-entry if already processing
-          showToast("A check is already in progress...");
-          return;
-      }
+      if (isChecking) return;
 
       const singleIpInputEl = document.getElementById('proxyip');
       const rangeIpInputEl = document.getElementById('proxyipRange'); 
@@ -902,20 +654,47 @@ async function HTML(hostname, 网站图标, token) {
       const btnText = checkBtn.querySelector('.btn-text');
       const spinner = checkBtn.querySelector('.loading-spinner');
 
-      // Reset global states for a new "Check" button click
-      isCheckingOverall = true;
-      isProcessingQueuedRanges = false; 
-      rangeQueueGlobal = [];
-      currentRangeIndexGlobal = 0;
-      currentSuccessfulRangeDataGlobal = [];
+      const rawSingleInput = singleIpInputEl.value;
+      let singleIpToTest = preprocessInput(rawSingleInput);
+
+      const rawRangeInput = rangeIpInputEl.value.trim();
+      const rangeInputsArray = rawRangeInput ? rawRangeInput.split(/[\n, ]+/).map(r => r.trim()).filter(r => r && r.length > 0) : [];
 
 
+      if (singleIpToTest && singleIpToTest !== rawSingleInput) {
+        singleIpInputEl.value = singleIpToTest;
+        showToast('Single IP input auto-corrected.');
+      }
+
+      if (!singleIpToTest && rangeInputsArray.length === 0) {
+        showToast('Please enter a single IP/Domain or at least one IP Range.');
+        (rawSingleInput && rawSingleInput.length > 0 ? singleIpInputEl : rangeIpInputEl).focus();
+        return;
+      }
+
+      const currentTimestamp = calculateTimestamp();
+      if (currentTimestamp !== pageLoadTimestamp) {
+        const currentHost = window.location.host;
+        const currentProtocol = window.location.protocol;
+        let redirectPathVal = singleIpToTest || (rangeInputsArray.length > 0 ? rangeInputsArray[0] : '');
+        const redirectUrl = \`\${currentProtocol}//\${currentHost}/\${encodeURIComponent(redirectPathVal)}\`;
+        showToast('TOKEN expired, refreshing page...');
+        setTimeout(() => { window.location.href = redirectUrl; }, 1000);
+        return;
+      }
+
+      if (singleIpToTest) {
+        try { localStorage.setItem('lastProxyIP', singleIpToTest); } catch (e) {}
+      }
+
+      isChecking = true;
       checkBtn.disabled = true;
       btnText.style.display = 'none';
       spinner.style.display = 'inline-block';
-      
+
       resultDiv.innerHTML = ''; 
       resultDiv.classList.remove('show');
+      
       rangeResultCard.style.display = 'none';
       if (rangeResultSummaryEl) rangeResultSummaryEl.innerHTML = '';
       if (successfulRangeIPsListEl) successfulRangeIPsListEl.innerHTML = ''; 
@@ -924,42 +703,8 @@ async function HTML(hostname, 网站图标, token) {
           rangeChartInstance.destroy();
           rangeChartInstance = null;
       }
+      currentSuccessfulRangeData = []; 
 
-      const rawSingleInput = singleIpInputEl.value;
-      let singleIpToTest = preprocessInput(rawSingleInput);
-
-      const rawRangeInput = rangeIpInputEl.value.trim();
-      rangeQueueGlobal = rawRangeInput ? rawRangeInput.split(/[\n, ]+/).map(r => r.trim()).filter(r => r && r.length > 0) : [];
-
-
-      if (singleIpToTest && singleIpToTest !== rawSingleInput) {
-        singleIpInputEl.value = singleIpToTest;
-        showToast('Single IP input auto-corrected.');
-      }
-
-      if (!singleIpToTest && rangeQueueGlobal.length === 0) {
-        showToast('Please enter a single IP/Domain or at least one IP Range.');
-        (rawSingleInput && rawSingleInput.length > 0 ? singleIpInputEl : rangeIpInputEl).focus();
-        finalizeProcessing(); // Reset button state
-        return;
-      }
-
-      const currentTimestamp = calculateTimestamp();
-      if (currentTimestamp !== pageLoadTimestamp) {
-        const currentHost = window.location.host;
-        const currentProtocol = window.location.protocol;
-        let redirectPathVal = singleIpToTest || (rangeQueueGlobal.length > 0 ? rangeQueueGlobal[0] : '');
-        const redirectUrl = \`\${currentProtocol}//\${currentHost}/\${encodeURIComponent(redirectPathVal)}\`;
-        showToast('TOKEN expired, refreshing page...');
-        setTimeout(() => { window.location.href = redirectUrl; }, 1000);
-        // No finalizeProcessing() here as page will reload
-        return;
-      }
-
-      if (singleIpToTest) {
-        try { localStorage.setItem('lastProxyIP', singleIpToTest); } catch (e) {}
-      }
-      
       try {
         if (singleIpToTest) {
           if (isIPAddress(singleIpToTest)) {
@@ -969,15 +714,99 @@ async function HTML(hostname, 网站图标, token) {
           }
         }
 
-        if (rangeQueueGlobal.length > 0) {
+        if (rangeInputsArray.length > 0) {
           rangeResultCard.style.display = 'block'; 
-          if (rangeResultSummaryEl) rangeResultSummaryEl.innerHTML = 'Initializing range tests...';
-          isProcessingQueuedRanges = true; // Set flag before starting the queue
-          await processRangeQueue(); // Start processing the queue
-          // finalizeProcessing() will be called by processRangeQueue when it's done or stopped
-        } else {
-          // No ranges to process, and single IP (if any) is done
-          finalizeProcessing();
+          let overallSuccessCount = 0;
+          let overallCheckedCount = 0;
+          
+          for (let i = 0; i < rangeInputsArray.length; i++) {
+            const currentRangeString = preprocessInput(rangeInputsArray[i]);
+            if (!currentRangeString) continue;
+
+            showToast(\`Testing range \${i + 1}/\${rangeInputsArray.length}: \${currentRangeString}\`);
+            
+            if (successfulRangeIPsListEl) {
+                const rangeHeader = document.createElement('h6');
+                rangeHeader.textContent = \`Results for range: \${currentRangeString}\`;
+                rangeHeader.style.marginTop = successfulRangeIPsListEl.children.length > 0 ? '20px' : '0';
+                rangeHeader.style.borderBottom = '1px dashed #ccc';
+                rangeHeader.style.paddingBottom = '4px';
+                rangeHeader.style.marginBottom = '8px';
+                successfulRangeIPsListEl.appendChild(rangeHeader);
+            }
+
+            const ipsInCurrentRange = parseIPRange(currentRangeString);
+            let currentRangeBatchSuccessData = []; 
+            let currentRangeSuccessCountForThisRange = 0;
+
+            if (ipsInCurrentRange.length > 0) {
+              const batchSize = 10;
+              for (let j = 0; j < ipsInCurrentRange.length; j += batchSize) {
+                const batch = ipsInCurrentRange.slice(j, j + batchSize);
+                const batchPromises = batch.map(ip =>
+                  fetchSingleIPCheck(ip + ':443')
+                    .then(async data => {
+                      overallCheckedCount++;
+                      if (data.success) {
+                        overallSuccessCount++;
+                        currentRangeSuccessCountForThisRange++;
+                        const cleanIpForGeo = data.proxyIP.split(':')[0];
+                        const geoData = await getIPInfo(cleanIpForGeo);
+                        const successEntry = { ip: data.proxyIP, port: data.portRemote, geo: geoData };
+                        currentSuccessfulRangeData.push(successEntry); 
+                        currentRangeBatchSuccessData.push(successEntry); 
+                      }
+                      return data;
+                    })
+                    .catch(err => {
+                      overallCheckedCount++;
+                      console.error("Error checking IP in range:", ip, err);
+                      return { success: false, proxyIP: ip, error: err.message };
+                    })
+                );
+                await Promise.all(batchPromises);
+                if (rangeResultSummaryEl) rangeResultSummaryEl.innerHTML = \`Overall - Tested: \${overallCheckedCount} | Successful: \${overallSuccessCount}\`;
+                
+                if (currentRangeBatchSuccessData.length > 0) {
+                     renderSuccessfulRangeIPsList(currentRangeBatchSuccessData, successfulRangeIPsListEl, false); 
+                     currentRangeBatchSuccessData = []; 
+                }
+              }
+              if(currentRangeSuccessCountForThisRange === 0 && successfulRangeIPsListEl) {
+                const noResultPara = document.createElement('p');
+                noResultPara.textContent = 'No successful IPs found in this range.';
+                noResultPara.style.fontSize = '0.85em';
+                noResultPara.style.color = '#777';
+                noResultPara.style.paddingLeft = '5px';
+                successfulRangeIPsListEl.appendChild(noResultPara);
+              }
+              showToast(\`Range '\${currentRangeString}' test complete. \${currentRangeSuccessCountForThisRange} of \${ipsInCurrentRange.length} IPs were successful.\`);
+            } else if (currentRangeString) {
+              showToast(\`Invalid IP Range format or empty for: \${currentRangeString}\`);
+               if (successfulRangeIPsListEl) {
+                  const errorPara = document.createElement('p');
+                  errorPara.textContent = 'Invalid format or empty range.';
+                  errorPara.style.fontSize = '0.85em';
+                  errorPara.style.color = 'var(--error-color)';
+                  errorPara.style.paddingLeft = '5px';
+                  successfulRangeIPsListEl.appendChild(errorPara);
+               }
+            }
+             if (i < rangeInputsArray.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 300)); 
+             }
+          }
+
+          if (rangeResultSummaryEl) rangeResultSummaryEl.innerHTML = \`All ranges processed. Overall - Tested: \${overallCheckedCount} | Successful: \${overallSuccessCount}\`;
+          
+          if (currentSuccessfulRangeData.length > 0) {
+            updateRangeSuccessChart(currentSuccessfulRangeData.map(item => item.ip + (item.port && parseInt(item.port) !== 443 ? ':' + item.port : '')));
+            if (copyRangeBtn) copyRangeBtn.style.display = 'inline-block';
+          } else {
+            if (rangeChartInstance) { rangeChartInstance.destroy(); rangeChartInstance = null; }
+            if (copyRangeBtn) copyRangeBtn.style.display = 'none';
+            if (rangeInputsArray.length > 0) showToast('No successful IPs found in any of the ranges.');
+          }
         }
 
       } catch (err) {
@@ -986,19 +815,23 @@ async function HTML(hostname, 网站图标, token) {
         else if (rangeResultSummaryEl) rangeResultSummaryEl.textContent = \`Error: \${err.message}\`;
         
         if (resultDiv.innerHTML !== '') resultDiv.classList.add('show');
-        if (rangeQueueGlobal.length > 0) rangeResultCard.style.display = 'block';
-        finalizeProcessing(); // Ensure UI is reset on error
+        if (rangeInputsArray.length > 0) rangeResultCard.style.display = 'block';
+      } finally {
+        isChecking = false;
+        checkBtn.disabled = false;
+        btnText.style.display = 'inline-block';
+        spinner.style.display = 'none';
       }
     }
     
-    function updateRangeSuccessChart(successfulIPsData) { // Expects array of {ip, port} objects
+    function updateRangeSuccessChart(successfulIPsWithPort) { 
         const ctx = document.getElementById('rangeSuccessChart').getContext('2d');
         if (rangeChartInstance) {
             rangeChartInstance.destroy();
         }
         
-        const labels = successfulIPsData.map(item => item.ip + (item.port && parseInt(item.port) !== 443 ? ':' + item.port : ''));
-        const dataPoints = successfulIPsData.map(() => 1); 
+        const labels = successfulIPsWithPort; 
+        const dataPoints = successfulIPsWithPort.map(() => 1); 
 
         rangeChartInstance = new Chart(ctx, {
             type: 'bar', 
@@ -1060,23 +893,17 @@ async function HTML(hostname, 网站图标, token) {
         if(rangeChartInstance) rangeChartInstance.resize();
     }
     
-    function renderSuccessfulRangeIPsList(dataToRender, targetEl, clearPreviousSection = false) {
-        if (!targetEl) return;
-
-        if (clearPreviousSection) { // Typically not used now as headers define sections
-            targetEl.innerHTML = ''; 
-        }
+    // Modified renderSuccessfulRangeIPsList
+    function renderSuccessfulRangeIPsList(dataToRender, targetEl, clearTargetCompletelyIfFirstCall = true) {
+        // This function is now designed to append to targetEl under the current range header.
+        // The main clearing of successfulRangeIPsListEl happens in checkInputs.
+        if (!targetEl || dataToRender.length === 0) return;
         
-        if (dataToRender.length === 0) {
-            // If called with no data and not clearing, do nothing.
-            // If clearing and no data, "No successful IPs" is handled by caller if needed.
-            return;
-        }
-
-        // Append to the last UL, or create a new UL if one isn't directly under targetEl
-        // (e.g. after a new h6 header)
+        // Find the last UL, assuming it's the one for the current range, or create one if none.
         let ul = targetEl.querySelector('ul:last-of-type');
-        if (!ul || (ul.parentElement !== targetEl && ul.previousElementSibling?.tagName !== 'H6')) {
+        if (!ul || ul.parentElement !== targetEl && !ul.closest('h6 + ul')) { 
+            // If no ul or last ul is not directly under target (e.g. only headers present)
+            // or we want a new UL for a new section (though headers handle sections now)
             ul = document.createElement('ul');
             ul.style.listStyleType = 'none';
             ul.style.paddingLeft = '0';
@@ -1109,8 +936,8 @@ async function HTML(hostname, 网站图标, token) {
     }
 
     function copySuccessfulRangeIPs() {
-        if (currentSuccessfulRangeDataGlobal.length > 0) {
-            const textToCopy = currentSuccessfulRangeDataGlobal.map(item => item.ip + (item.port && parseInt(item.port) !== 443 ? ':' + item.port : '')).join('\\n');
+        if (currentSuccessfulRangeData.length > 0) {
+            const textToCopy = currentSuccessfulRangeData.map(item => item.ip + (item.port && parseInt(item.port) !== 443 ? ':' + item.port : '')).join('\\n');
             copyToClipboard(textToCopy, document.getElementById('copyRangeBtn'), "All successful IPs copied!");
         } else {
             showToast("No successful IPs from ranges to copy.");
@@ -1257,9 +1084,9 @@ async function HTML(hostname, 网站图标, token) {
       if (isShort) { 
         return \`(Country: \${country})\`; 
       } else { 
-        const asvalue = ipInfo.asvalue || '';
-        let asvalueInfoText = asvalue ? \`, AS: \${asvalue.substring(0, 25)}${asvalue.length > 25 ? '...' : ''}\` : '';
-        return \`(Country: \${country}\${asvalueInfoText})\`; 
+        const as = ipInfo.as || '';
+        let asInfoText = as ? \`, AS: \${as.substring(0, 25)}${as.length > 25 ? '...' : ''}\` : '';
+        return \`(Country: \${country}\${asInfoText})\`; 
       }
     }
   </script>
@@ -1271,3 +1098,7 @@ async function HTML(hostname, 网站图标, token) {
     headers: { "content-type": "text/html;charset=UTF-8" } 
   });
     }
+
+// The rest of the worker code (CheckProxyIP, resolveDomain, etc.) remains the same as in your original file.
+// Only the HTML function and the script within it have been modified.
+            }
