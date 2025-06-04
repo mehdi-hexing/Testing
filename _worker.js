@@ -1,222 +1,224 @@
 import { connect } from "cloudflare:sockets";
-let 临时TOKEN, 永久TOKEN; //
+let 临时TOKEN, 永久TOKEN; 
 
 export default {
   async fetch(request, env, ctx) {
-    const 网站图标 = env.ICO || 'https://cf-assets.www.cloudflare.com/dzlvafdwdttg/19kSkLSfWtDcspvQI5pit4/c5630cf25d589a0de91978ca29486259/performance-acceleration-bolt.svg'; //
+    const 网站图标 = env.ICO || 'https://cf-assets.www.cloudflare.com/dzlvafdwdttg/19kSkLSfWtDcspvQI5pit4/c5630cf25d589a0de91978ca29486259/performance-acceleration-bolt.svg'; 
     const url = new URL(request.url);
-    const UA = request.headers.get('User-Agent') || 'null'; //
+    const UA = request.headers.get('User-Agent') || 'null'; 
     const path = url.pathname;
     const hostname = url.hostname;
     const currentDate = new Date();
-    const timestamp = Math.ceil(currentDate.getTime() / (1000 * 60 * 31)); //
-    临时TOKEN = await 双重哈希(url.hostname + timestamp + UA); //
-    永久TOKEN = env.TOKEN || 临时TOKEN; //
+    const timestamp = Math.ceil(currentDate.getTime() / (1000 * 60 * 31)); 
+    临时TOKEN = await 双重哈希(url.hostname + timestamp + UA); 
+    永久TOKEN = env.TOKEN || 临时TOKEN; 
 
-    if (path.toLowerCase() === '/check') { //
-      if (!url.searchParams.has('proxyip')) return new Response('Missing proxyip parameter', { status: 400 }); //
-      if (url.searchParams.get('proxyip') === '') return new Response('Invalid proxyip parameter', { status: 400 }); //
+    if (path.toLowerCase() === '/check') { 
+      if (!url.searchParams.has('proxyip')) return new Response('Missing proxyip parameter', { status: 400 }); 
+      if (url.searchParams.get('proxyip') === '') return new Response('Invalid proxyip parameter', { status: 400 }); 
 
-      if (env.TOKEN) { //
-        if (!url.searchParams.has('token') || url.searchParams.get('token') !== 永久TOKEN) { //
+      if (env.TOKEN) { 
+        if (!url.searchParams.has('token') || url.searchParams.get('token') !== 永久TOKEN) { 
           return new Response(JSON.stringify({
             status: "error",
-            message: `ProxyIP Check Failed: Invalid TOKEN`, //
+            message: `ProxyIP Check Failed: Invalid TOKEN`, 
             timestamp: new Date().toISOString()
           }, null, 4), {
             status: 403,
             headers: {
-              "content-type": "application/json; charset=UTF-8", //
-              'Access-Control-Allow-Origin': '*' //
+              "content-type": "application/json; charset=UTF-8", 
+              'Access-Control-Allow-Origin': '*' 
             }
           });
         }
       }
-      const proxyIPInput = url.searchParams.get('proxyip').toLowerCase(); //
-      const result = await CheckProxyIP(proxyIPInput); //
+      const proxyIPInput = url.searchParams.get('proxyip').toLowerCase(); 
+      const result = await CheckProxyIP(proxyIPInput); 
 
-      return new Response(JSON.stringify(result, null, 2), { //
-        status: result.success ? 200 : 502, //
+      return new Response(JSON.stringify(result, null, 2), { 
+        status: result.success ? 200 : 502, 
         headers: {
-          "Content-Type": "application/json", //
-          "Access-Control-Allow-Origin": "*" //
+          "Content-Type": "application/json", 
+          "Access-Control-Allow-Origin": "*" 
         }
       });
-    } else if (path.toLowerCase() === '/resolve') { //
-      if (!url.searchParams.has('token') || (url.searchParams.get('token') !== 临时TOKEN) && (url.searchParams.get('token') !== 永久TOKEN)) { //
+    } else if (path.toLowerCase() === '/resolve') { 
+      if (!url.searchParams.has('token') || (url.searchParams.get('token') !== 临时TOKEN) && (url.searchParams.get('token') !== 永久TOKEN)) { 
         return new Response(JSON.stringify({
           status: "error",
-          message: `Domain Resolve Failed: Invalid TOKEN`, //
+          message: `Domain Resolve Failed: Invalid TOKEN`, 
           timestamp: new Date().toISOString()
         }, null, 4), {
           status: 403,
           headers: {
-            "content-type": "application/json; charset=UTF-8", //
-            'Access-Control-Allow-Origin': '*' //
+            "content-type": "application/json; charset=UTF-8", 
+            'Access-Control-Allow-Origin': '*' 
           }
         });
       }
-      if (!url.searchParams.has('domain')) return new Response('Missing domain parameter', { status: 400 }); //
-      const domain = url.searchParams.get('domain'); //
+      if (!url.searchParams.has('domain')) return new Response('Missing domain parameter', { status: 400 }); 
+      const domain = url.searchParams.get('domain'); 
 
       try {
-        const ips = await resolveDomain(domain); //
-        return new Response(JSON.stringify({ success: true, domain, ips }), { //
+        const ips = await resolveDomain(domain); 
+        return new Response(JSON.stringify({ success: true, domain, ips }), { 
           headers: {
-            "Content-Type": "application/json", //
-            "Access-Control-Allow-Origin": "*" //
+            "Content-Type": "application/json", 
+            "Access-Control-Allow-Origin": "*" 
           }
         });
       } catch (error) {
-        return new Response(JSON.stringify({ success: false, error: error.message }), { //
+        return new Response(JSON.stringify({ success: false, error: error.message }), { 
           status: 500,
           headers: {
-            "Content-Type": "application/json", //
-            "Access-Control-Allow-Origin": "*" //
+            "Content-Type": "application/json", 
+            "Access-Control-Allow-Origin": "*" 
           }
         });
       }
-    } else if (path.toLowerCase() === '/ip-info') { //
-      if (!url.searchParams.has('token') || (url.searchParams.get('token') !== 临时TOKEN) && (url.searchParams.get('token') !== 永久TOKEN)) { //
+    } else if (path.toLowerCase() === '/ip-info') { 
+      if (!url.searchParams.has('token') || (url.searchParams.get('token') !== 临时TOKEN) && (url.searchParams.get('token') !== 永久TOKEN)) { 
         return new Response(JSON.stringify({
           status: "error",
-          message: `IP Info Failed: Invalid TOKEN`, //
+          message: `IP Info Failed: Invalid TOKEN`, 
           timestamp: new Date().toISOString()
         }, null, 4), {
           status: 403,
           headers: {
-            "content-type": "application/json; charset=UTF-8", //
-            'Access-Control-Allow-Origin': '*' //
+            "content-type": "application/json; charset=UTF-8", 
+            'Access-Control-Allow-Origin': '*' 
           }
         });
       }
-      let ip = url.searchParams.get('ip') || request.headers.get('CF-Connecting-IP'); //
-      if (!ip) { //
+      let ip = url.searchParams.get('ip') || request.headers.get('CF-Connecting-IP'); 
+      if (!ip) { 
         return new Response(JSON.stringify({
           status: "error",
-          message: "IP parameter not provided", //
-          code: "MISSING_PARAMETER", //
+          message: "IP parameter not provided", 
+          code: "MISSING_PARAMETER", 
           timestamp: new Date().toISOString()
         }, null, 4), {
           status: 400,
           headers: {
-            "content-type": "application/json; charset=UTF-8", //
-            'Access-Control-Allow-Origin': '*' //
+            "content-type": "application/json; charset=UTF-8", 
+            'Access-Control-Allow-Origin': '*' 
           }
         });
       }
 
-      if (ip.includes('[')) { //
-        ip = ip.replace('[', '').replace(']', ''); //
+      if (ip.includes('[')) { 
+        ip = ip.replace('[', '').replace(']', ''); 
       }
 
       try {
-        const response = await fetch(`http://ip-api.com/json/${ip}?lang=en`); // lang=en for English country names
-        if (!response.ok) { //
-          throw new Error(`HTTP error: ${response.status}`); //
+        // *** MODIFICATION: Changed lang=zh-CN to lang=en ***
+        const response = await fetch(`http://ip-api.com/json/${ip}?lang=en`); 
+
+        if (!response.ok) { 
+          throw new Error(`HTTP error: ${response.status}`); 
         }
 
-        const data = await response.json(); //
-        data.timestamp = new Date().toISOString(); //
+        const data = await response.json(); 
+        data.timestamp = new Date().toISOString(); 
 
-        return new Response(JSON.stringify(data, null, 4), { //
+        return new Response(JSON.stringify(data, null, 4), { 
           headers: {
-            "content-type": "application/json; charset=UTF-8", //
-            'Access-Control-Allow-Origin': '*' //
+            "content-type": "application/json; charset=UTF-8", 
+            'Access-Control-Allow-Origin': '*' 
           }
         });
 
-      } catch (error) { //
-        console.error("IP Info Fetch Error:", error); //
+      } catch (error) { 
+        console.error("IP Info Fetch Error:", error); 
         return new Response(JSON.stringify({
           status: "error",
-          message: `IP Info Fetch Error: ${error.message}`, //
-          code: "API_REQUEST_FAILED", //
-          query: ip, //
-          timestamp: new Date().toISOString(), //
-          details: { //
-            errorType: error.name, //
-            stack: error.stack ? error.stack.split('\n')[0] : null //
+          message: `IP Info Fetch Error: ${error.message}`, 
+          code: "API_REQUEST_FAILED", 
+          query: ip, 
+          timestamp: new Date().toISOString(), 
+          details: { 
+            errorType: error.name, 
+            stack: error.stack ? error.stack.split('\n')[0] : null 
           }
         }, null, 4), {
           status: 500,
           headers: {
-            "content-type": "application/json; charset=UTF-8", //
-            'Access-Control-Allow-Origin': '*' //
+            "content-type": "application/json; charset=UTF-8", 
+            'Access-Control-Allow-Origin': '*' 
           }
         });
       }
     } else {
-      const envKey = env.URL302 ? 'URL302' : (env.URL ? 'URL' : null); //
-      if (envKey) { //
-        const URLs = await 整理(env[envKey]); //
-        const URL = URLs[Math.floor(Math.random() * URLs.length)]; //
-        return envKey === 'URL302' ? Response.redirect(URL, 302) : fetch(new Request(URL, request)); //
-      } else if (env.TOKEN) { //
-        return new Response(await nginx(), { //
+      const envKey = env.URL302 ? 'URL302' : (env.URL ? 'URL' : null); 
+      if (envKey) { 
+        const URLs = await 整理(env[envKey]); 
+        const URL = URLs[Math.floor(Math.random() * URLs.length)]; 
+        return envKey === 'URL302' ? Response.redirect(URL, 302) : fetch(new Request(URL, request)); 
+      } else if (env.TOKEN) { 
+        return new Response(await nginx(), { 
           headers: {
-            'Content-Type': 'text/html; charset=UTF-8', //
+            'Content-Type': 'text/html; charset=UTF-8', 
           },
         });
-      } else if (path.toLowerCase() === '/favicon.ico') { //
-        return Response.redirect(网站图标, 302); //
+      } else if (path.toLowerCase() === '/favicon.ico') { 
+        return Response.redirect(网站图标, 302); 
       }
-      return await HTML(hostname, 网站图标, 临时TOKEN); // Pass 临时TOKEN
+      return await HTML(hostname, 网站图标, 临时TOKEN); 
     }
   }
 };
 
-async function resolveDomain(domain) { //
-  domain = domain.includes(':') ? domain.split(':')[0] : domain; //
+async function resolveDomain(domain) { 
+  domain = domain.includes(':') ? domain.split(':')[0] : domain; 
   try {
-    const [ipv4Response, ipv6Response] = await Promise.all([ //
-      fetch(`https://1.1.1.1/dns-query?name=${domain}&type=A`, { //
-        headers: { 'Accept': 'application/dns-json' } //
+    const [ipv4Response, ipv6Response] = await Promise.all([ 
+      fetch(`https://1.1.1.1/dns-query?name=${domain}&type=A`, { 
+        headers: { 'Accept': 'application/dns-json' } 
       }),
-      fetch(`https://1.1.1.1/dns-query?name=${domain}&type=AAAA`, { //
-        headers: { 'Accept': 'application/dns-json' } //
+      fetch(`https://1.1.1.1/dns-query?name=${domain}&type=AAAA`, { 
+        headers: { 'Accept': 'application/dns-json' } 
       })
     ]);
 
-    const [ipv4Data, ipv6Data] = await Promise.all([ //
-      ipv4Response.json(), //
-      ipv6Response.json() //
+    const [ipv4Data, ipv6Data] = await Promise.all([ 
+      ipv4Response.json(), 
+      ipv6Response.json() 
     ]);
 
-    const ips = []; //
-    if (ipv4Data.Answer) { //
-      const ipv4Addresses = ipv4Data.Answer //
-        .filter(record => record.type === 1) //
-        .map(record => record.data); //
-      ips.push(...ipv4Addresses); //
+    const ips = []; 
+    if (ipv4Data.Answer) { 
+      const ipv4Addresses = ipv4Data.Answer 
+        .filter(record => record.type === 1) 
+        .map(record => record.data); 
+      ips.push(...ipv4Addresses); 
     }
-    if (ipv6Data.Answer) { //
-      const ipv6Addresses = ipv6Data.Answer //
-        .filter(record => record.type === 28) //
-        .map(record => `[${record.data}]`); //
-      ips.push(...ipv6Addresses); //
+    if (ipv6Data.Answer) { 
+      const ipv6Addresses = ipv6Data.Answer 
+        .filter(record => record.type === 28) 
+        .map(record => `[${record.data}]`); 
+      ips.push(...ipv6Addresses); 
     }
-    if (ips.length === 0) { //
-      throw new Error('No A or AAAA records found'); //
+    if (ips.length === 0) { 
+      throw new Error('No A or AAAA records found'); 
     }
-    return ips; //
+    return ips; 
   } catch (error) {
-    throw new Error(`DNS resolution failed: ${error.message}`); //
+    throw new Error(`DNS resolution failed: ${error.message}`); 
   }
 }
 
-async function CheckProxyIP(proxyIP) { //
-  let portRemote = 443; //
+async function CheckProxyIP(proxyIP) { 
+  let portRemote = 443; 
   let hostToCheck = proxyIP;
 
-  if (proxyIP.includes('.tp')) { //
-    const portMatch = proxyIP.match(/\.tp(\d+)\./); //
-    if (portMatch) portRemote = parseInt(portMatch[1]); //
+  if (proxyIP.includes('.tp')) { 
+    const portMatch = proxyIP.match(/\.tp(\d+)\./); 
+    if (portMatch) portRemote = parseInt(portMatch[1]); 
      hostToCheck = proxyIP.split('.tp')[0];
-  } else if (proxyIP.includes('[') && proxyIP.includes(']:')) { //
-    portRemote = parseInt(proxyIP.split(']:')[1]); //
-    hostToCheck = proxyIP.split(']:')[0] + ']'; //
-  } else if (proxyIP.includes(':') && !proxyIP.startsWith('[')) { //
+  } else if (proxyIP.includes('[') && proxyIP.includes(']:')) { 
+    portRemote = parseInt(proxyIP.split(']:')[1]); 
+    hostToCheck = proxyIP.split(']:')[0] + ']'; 
+  } else if (proxyIP.includes(':') && !proxyIP.startsWith('[')) { 
     const parts = proxyIP.split(':');
     if (parts.length === 2 && parts[0].includes('.')) {
         hostToCheck = parts[0];
@@ -224,103 +226,103 @@ async function CheckProxyIP(proxyIP) { //
     }
   }
 
-  const tcpSocket = connect({ //
+  const tcpSocket = connect({ 
     hostname: hostToCheck,
     port: portRemote,
   });
 
   try {
-    const httpRequest = //
+    const httpRequest = 
       "GET /cdn-cgi/trace HTTP/1.1\r\n" +
       "Host: speed.cloudflare.com\r\n" +
       "User-Agent: CheckProxyIP/mehdi-hexing\r\n" +
       "Connection: close\r\n\r\n";
 
-    const writer = tcpSocket.writable.getWriter(); //
-    await writer.write(new TextEncoder().encode(httpRequest)); //
-    writer.releaseLock(); //
+    const writer = tcpSocket.writable.getWriter(); 
+    await writer.write(new TextEncoder().encode(httpRequest)); 
+    writer.releaseLock(); 
 
-    const reader = tcpSocket.readable.getReader(); //
-    let responseData = new Uint8Array(0); //
+    const reader = tcpSocket.readable.getReader(); 
+    let responseData = new Uint8Array(0); 
 
-    while (true) { //
-      const { value, done } = await Promise.race([ //
-        reader.read(), //
-        new Promise(resolve => setTimeout(() => resolve({ done: true }), 5000)) //
+    while (true) { 
+      const { value, done } = await Promise.race([ 
+        reader.read(), 
+        new Promise(resolve => setTimeout(() => resolve({ done: true }), 5000)) 
       ]);
 
-      if (done) break; //
-      if (value) { //
-        const newData = new Uint8Array(responseData.length + value.length); //
-        newData.set(responseData); //
-        newData.set(value, responseData.length); //
-        responseData = newData; //
-        const responseText = new TextDecoder().decode(responseData); //
-        if (responseText.includes("\r\n\r\n") && //
-          (responseText.includes("Connection: close") || responseText.includes("content-length"))) { //
-          break; //
+      if (done) break; 
+      if (value) { 
+        const newData = new Uint8Array(responseData.length + value.length); 
+        newData.set(responseData); 
+        newData.set(value, responseData.length); 
+        responseData = newData; 
+        const responseText = new TextDecoder().decode(responseData); 
+        if (responseText.includes("\r\n\r\n") && 
+          (responseText.includes("Connection: close") || responseText.includes("content-length"))) { 
+          break; 
         }
       }
     }
-    reader.releaseLock(); //
+    reader.releaseLock(); 
 
-    const responseText = new TextDecoder().decode(responseData); //
-    const statusMatch = responseText.match(/^HTTP\/\d\.\d\s+(\d+)/i); //
-    const statusCode = statusMatch ? parseInt(statusMatch[1]) : null; //
+    const responseText = new TextDecoder().decode(responseData); 
+    const statusMatch = responseText.match(/^HTTP\/\d\.\d\s+(\d+)/i); 
+    const statusCode = statusMatch ? parseInt(statusMatch[1]) : null; 
 
-    function isValidProxyResponse(responseText, responseData) { //
-      const statusMatch = responseText.match(/^HTTP\/\d\.\d\s+(\d+)/i); //
-      const statusCode = statusMatch ? parseInt(statusMatch[1]) : null; //
-      const looksLikeCloudflare = responseText.includes("cloudflare"); //
-      const isExpectedError = responseText.includes("plain HTTP request") || responseText.includes("400 Bad Request"); //
-      const hasBody = responseData.length > 100; //
-      return statusCode !== null && looksLikeCloudflare && isExpectedError && hasBody; //
+    function isValidProxyResponse(responseText, responseData) { 
+      const statusMatch = responseText.match(/^HTTP\/\d\.\d\s+(\d+)/i); 
+      const statusCode = statusMatch ? parseInt(statusMatch[1]) : null; 
+      const looksLikeCloudflare = responseText.includes("cloudflare"); 
+      const isExpectedError = responseText.includes("plain HTTP request") || responseText.includes("400 Bad Request"); 
+      const hasBody = responseData.length > 100; 
+      return statusCode !== null && looksLikeCloudflare && isExpectedError && hasBody; 
     }
-    const isSuccessful = isValidProxyResponse(responseText, responseData); //
+    const isSuccessful = isValidProxyResponse(responseText, responseData); 
 
-    const jsonResponse = { //
-      success: isSuccessful, //
-      proxyIP: hostToCheck, //
-      portRemote: portRemote, //
-      statusCode: statusCode || null, //
-      responseSize: responseData.length, //
-      timestamp: new Date().toISOString(), //
+    const jsonResponse = { 
+      success: isSuccessful, 
+      proxyIP: hostToCheck, 
+      portRemote: portRemote, 
+      statusCode: statusCode || null, 
+      responseSize: responseData.length, 
+      timestamp: new Date().toISOString(), 
     };
-    await tcpSocket.close(); //
-    return jsonResponse; //
+    await tcpSocket.close(); 
+    return jsonResponse; 
   } catch (error) {
-    return { //
-      success: false, //
-      proxyIP: hostToCheck, //
-      portRemote: portRemote, //
-      timestamp: new Date().toISOString(), //
-      error: error.message || error.toString() //
+    return { 
+      success: false, 
+      proxyIP: hostToCheck, 
+      portRemote: portRemote, 
+      timestamp: new Date().toISOString(), 
+      error: error.message || error.toString() 
     };
   }
 }
 
-async function 整理(内容) { //
-  var 替换后的内容 = 内容.replace(/[\r\n]+/g, '|').replace(/\|+/g, '|'); //
-  const 地址数组 = 替换后的内容.split('|'); //
-  const 整理数组 = 地址数组.filter((item, index) => { //
-    return item !== '' && 地址数组.indexOf(item) === index; //
+async function 整理(内容) { 
+  var 替换后的内容 = 内容.replace(/[\r\n]+/g, '|').replace(/\|+/g, '|'); 
+  const 地址数组 = 替换后的内容.split('|'); 
+  const 整理数组 = 地址数组.filter((item, index) => { 
+    return item !== '' && 地址数组.indexOf(item) === index; 
   });
-  return 整理数组; //
+  return 整理数组; 
 }
 
-async function 双重哈希(文本) { //
-  const 编码器 = new TextEncoder(); //
-  const 第一次哈希 = await crypto.subtle.digest('MD5', 编码器.encode(文本)); //
-  const 第一次哈希数组 = Array.from(new Uint8Array(第一次哈希)); //
-  const 第一次十六进制 = 第一次哈希数组.map(字节 => 字节.toString(16).padStart(2, '0')).join(''); //
-  const 第二次哈希 = await crypto.subtle.digest('MD5', 编码器.encode(第一次十六进制.slice(7, 27))); //
-  const 第二次哈希数组 = Array.from(new Uint8Array(第二次哈希)); //
-  const 第二次十六进制 = 第二次哈希数组.map(字节 => 字节.toString(16).padStart(2, '0')).join(''); //
-  return 第二次十六进制.toLowerCase(); //
+async function 双重哈希(文本) { 
+  const 编码器 = new TextEncoder(); 
+  const 第一次哈希 = await crypto.subtle.digest('MD5', 编码器.encode(文本)); 
+  const 第一次哈希数组 = Array.from(new Uint8Array(第一次哈希)); 
+  const 第一次十六进制 = 第一次哈希数组.map(字节 => 字节.toString(16).padStart(2, '0')).join(''); 
+  const 第二次哈希 = await crypto.subtle.digest('MD5', 编码器.encode(第一次十六进制.slice(7, 27))); 
+  const 第二次哈希数组 = Array.from(new Uint8Array(第二次哈希)); 
+  const 第二次十六进制 = 第二次哈希数组.map(字节 => 字节.toString(16).padStart(2, '0')).join(''); 
+  return 第二次十六进制.toLowerCase(); 
 }
 
-async function nginx() { //
-  const text = `
+async function nginx() { 
+  const text = \`
     <!DOCTYPE html>
     <html>
     <head>
@@ -344,18 +346,18 @@ async function nginx() { //
     <p><em>Thank you for using nginx.</em></p>
     </body>
     </html>
-    ` //
-  return text; //
+    \` 
+  return text; 
 }
 
 async function HTML(hostname, 网站图标, token) {
-  const html = `<!DOCTYPE html>
+  const html = \`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Check ProxyIP Service</title>
-  <link rel="icon" href="${网站图标}" type="image/x-icon">
+  <link rel="icon" href="\${网站图标}" type="image/x-icon">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -376,33 +378,30 @@ async function HTML(hostname, 网站图标, token) {
       --border-radius: 12px; 
       --border-radius-sm: 8px; 
     }
-    body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: var(--text-primary); line-height: 1.6; margin:0; padding:0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
-    .container { max-width: 800px; width: 100%; margin: 20px auto; padding: 20px; box-sizing: border-box; }
-    .header { text-align: center; margin-bottom: 30px; }
-    .main-title { font-size: 2.5rem; font-weight: 700; background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .card { background: var(--bg-primary); border-radius: var(--border-radius); padding: 25px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); margin-bottom: 25px; }
+    body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: var(--text-primary); line-height: 1.6; margin:0; padding:0; min-height: 100vh; display: flex; flex-direction: column; align-items: center;  }
+    .container { max-width: 800px; width: 100%; margin: 20px auto; padding: 20px; box-sizing: border-box; } 
+    .header { text-align: center; margin-bottom: 30px; } 
+    .main-title { font-size: 2.5rem; font-weight: 700; background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; } 
+    .card { background: var(--bg-primary); border-radius: var(--border-radius); padding: 25px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); margin-bottom: 25px; } 
     .form-section { display: flex; flex-direction: column; align-items: center; }
-    .form-label { display: block; font-weight: 500; margin-bottom: 8px; color: var(--text-primary); width: 100%; max-width: 400px; text-align: left;}
+    .form-label { display: block; font-weight: 500; margin-bottom: 8px; color: var(--text-primary); width: 100%; max-width: 400px; text-align: left;} 
     .input-wrapper { width: 100%; max-width: 400px; margin-bottom: 15px; }
-    .form-input { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); font-size: 0.95rem; box-sizing: border-box; }
-    textarea.form-input { line-height: 1.5; } 
-    .btn-primary { background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); color: white; padding: 12px 25px; border: none; border-radius: var(--border-radius-sm); font-size: 1rem; font-weight: 500; cursor: pointer; width: 100%; max-width: 400px; box-sizing: border-box; }
-    .btn-primary:disabled { background: #bdc3c7; cursor: not-allowed; }
+    .form-input { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); font-size: 0.95rem; box-sizing: border-box; } 
+    .btn-primary { background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); color: white; padding: 12px 25px; border: none; border-radius: var(--border-radius-sm); font-size: 1rem; font-weight: 500; cursor: pointer; width: 100%; max-width: 400px; box-sizing: border-box; } 
+    .btn-primary:disabled { background: #bdc3c7; cursor: not-allowed; } 
     .btn-secondary { background-color: var(--bg-secondary); color: var(--text-primary); padding: 8px 15px; border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); font-size: 0.9rem; cursor: pointer; margin-top: 15px; }
-    .loading-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite; display: none; margin-left: 8px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .result-section { margin-top: 25px; }
-    .result-card { padding: 18px; border-radius: var(--border-radius-sm); margin-bottom: 12px; }
-    .result-card p { margin-top: 0.5em; margin-bottom: 0.5em; } 
-    .result-success { background-color: #d4edda; border-left: 4px solid var(--success-color); color: #155724; }
-    .result-error { background-color: #f8d7da; border-left: 4px solid var(--error-color); color: #721c24; }
-    .result-warning { background-color: #fff3cd; border-left: 4px solid var(--warning-color); color: #856404;}
-    .copy-btn { background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 4px; font-size: 0.85em; cursor: pointer; margin-left: 8px;}
-    .toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 12px 20px; border-radius:var(--border-radius-sm); z-index:1000; opacity:0; transition: opacity 0.3s; box-sizing: border-box;}
-    .toast.show { opacity:1; }
+    .loading-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite; display: none; margin-left: 8px; } 
+    @keyframes spin { to { transform: rotate(360deg); } } 
+    .result-section { margin-top: 25px; } 
+    .result-card { padding: 18px; border-radius: var(--border-radius-sm); margin-bottom: 12px; } 
+    .result-success { background-color: #d4edda; border-left: 4px solid var(--success-color); color: #155724; } 
+    .result-error { background-color: #f8d7da; border-left: 4px solid var(--error-color); color: #721c24; } 
+    .result-warning { background-color: #fff3cd; border-left: 4px solid var(--warning-color); color: #856404;} 
+    .copy-btn { background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 4px; font-size: 0.85em; cursor: pointer; margin-left: 8px;} 
+    .toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 12px 20px; border-radius:var(--border-radius-sm); z-index:1000; opacity:0; transition: opacity 0.3s; box-sizing: border-box;} 
+    .toast.show { opacity:1; } 
     #rangeResultChartContainer { margin-top: 15px; padding:10px; background-color: var(--bg-secondary); border-radius: var(--border-radius-sm); }
-    #successfulRangeIPsList h6 { font-size: 0.95em; color: var(--text-primary); } 
-    .api-docs { margin-top: 30px; padding: 25px; background: var(--bg-primary); border-radius: var(--border-radius); }
+    .api-docs { margin-top: 30px; padding: 25px; background: var(--bg-primary); border-radius: var(--border-radius); } 
      .api-docs p code { 
         display: inline-block;
         background-color: #f0f0f0;
@@ -410,41 +409,88 @@ async function HTML(hostname, 网站图标, token) {
         border-radius: 4px;
         font-family: monospace;
     }
-    .footer { text-align: center; padding: 20px; margin-top: 30px; color: rgba(255,255,255,0.8); font-size: 0.85em; border-top: 1px solid rgba(255,255,255,0.1); }
+    .footer { text-align: center; padding: 20px; margin-top: 30px; color: rgba(255,255,255,0.8); font-size: 0.85em; border-top: 1px solid rgba(255,255,255,0.1); } 
     .flex-align-center { display: flex; align-items: center; justify-content: center; }
-    .github-corner svg { fill: #fff; color: var(--primary-color); position: fixed; top: 0; border: 0; right: 0; z-index: 1001;}
-    .octo-arm{transform-origin:130px 106px}
-    .github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}
-    @keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}
+    .github-corner svg { fill: #fff; color: var(--primary-color); position: fixed; top: 0; border: 0; right: 0; z-index: 1001;} 
+    .octo-arm{transform-origin:130px 106px} 
+    .github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out} 
+    @keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}} 
     
     .ip-item { 
         padding:8px 5px; 
         border-bottom:1px solid #f0f0f0; 
+        display:flex; 
+        justify-content:space-between; 
+        align-items:center;
+        flex-wrap: wrap; 
     }
     .ip-item > div:first-child { 
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 3px; 
+        flex-grow: 1; 
+        margin-right: 10px; 
     }
-    .geo-info { 
-      font-size:0.9em; 
-      color:#555; 
-      padding-left: 5px;
+     .ip-item .status-icon {
+        flex-shrink: 0; 
     }
 
     @media (max-width: 600px) {
-      .container { padding: 10px; margin: 10px auto; }
-      .header { margin-bottom: 15px; }
-      .main-title { font-size: 1.8rem; }
-      .card, .api-docs { padding: 15px; margin-bottom: 20px; }
-      .form-label { font-size: 0.9rem; margin-bottom: 6px; }
-      .form-input { padding: 10px; font-size: 0.9rem; }
-      .btn-primary { padding: 10px 15px; font-size: 0.95rem; }
-      .btn-secondary { padding: 7px 12px; font-size: 0.8rem; }
-      .api-docs p code { word-break: break-all; }
-      .toast { left: 10px; right: 10px; bottom: 10px; width: auto; max-width: calc(100% - 20px); text-align: center; }
-      .ip-grid { font-size: 0.9em; }
+      .container {
+        padding: 10px; 
+        margin: 10px auto;
+      }
+      .header {
+        margin-bottom: 15px;
+      }
+      .main-title {
+        font-size: 1.8rem; 
+      }
+      .card, .api-docs {
+        padding: 15px; 
+        margin-bottom: 20px;
+      }
+      .form-label {
+        font-size: 0.9rem; 
+        margin-bottom: 6px;
+      }
+      .form-input {
+        padding: 10px;
+        font-size: 0.9rem; 
+      }
+      .btn-primary {
+        padding: 10px 15px; 
+        font-size: 0.95rem;
+      }
+      .btn-secondary {
+         padding: 7px 12px;
+         font-size: 0.8rem;
+      }
+      .api-docs p code {
+        word-break: break-all; 
+      }
+      .toast {
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+        width: auto; 
+        max-width: calc(100% - 20px); 
+        text-align: center;
+      }
+      .ip-grid {
+         font-size: 0.9em; 
+      }
+      .ip-item {
+        flex-direction: column; 
+        align-items: flex-start; 
+      }
+      .ip-item > div:first-child { 
+        margin-bottom: 5px; 
+        margin-right: 0; 
+      }
+       .ip-item .copy-btn {
+        margin-left: 0; 
+        margin-right: 5px; 
+      }
+       #rangeResultChartContainer {
+       }
     }
     @media (max-width:500px){ 
         .github-corner:hover .octo-arm{animation:none}
@@ -466,9 +512,9 @@ async function HTML(hostname, 网站图标, token) {
           <input type="text" id="proxyip" class="form-input" placeholder="e.g., 1.2.3.4:443 or example.com" autocomplete="off">
         </div>
         
-        <label for="proxyipRange" class="form-label">Enter IP Range(s) (one per line or comma/space separated):</label>
+        <label for="proxyipRange" class="form-label">Enter IP Range (one range per line):</label>
         <div class="input-wrapper">
-          <textarea id="proxyipRange" class="form-input" placeholder="1.2.3.0/24\n1.1.1.0/24, 2.2.2.1-10" rows="3" autocomplete="off"></textarea>
+          <textarea id="proxyipRange" class="form-input" placeholder="e.g., 1.2.3.0/24\n1.2.4.1-255" autocomplete="off" rows="3"></textarea>
         </div>
 
         <button id="checkBtn" class="btn-primary" onclick="checkInputs()">
@@ -486,8 +532,7 @@ async function HTML(hostname, 网站图标, token) {
             <canvas id="rangeSuccessChart"></canvas>
          </div>
          <div id="rangeResultSummary" style="margin-bottom: 10px;"></div>
-         <div id="successfulRangeIPsList" style="margin-top: 10px; max-height: 300px; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: var(--border-radius-sm);"></div>
-         <button id="copyRangeBtn" class="btn-secondary" onclick="copySuccessfulRangeIPs()" style="display:none;">Copy All Successful IPs</button>
+         <button id="copyRangeBtn" class="btn-secondary" onclick="copySuccessfulRangeIPs()" style="display:none;">Copy Successful IPs</button>
       </div>
     </div>
     
@@ -509,9 +554,9 @@ async function HTML(hostname, 网站图标, token) {
     let isChecking = false; 
     const ipCheckResults = new Map(); 
     let pageLoadTimestamp; 
-    const TEMP_TOKEN = "${token}"; 
+    const TEMP_TOKEN = "\${token}"; 
     let rangeChartInstance = null;
-    let currentSuccessfulRangeData = []; // Holds all successful IPs from all ranges for chart/copy
+    let currentSuccessfulRangeIPs = []; 
 
     function calculateTimestamp() { 
       const currentDate = new Date(); 
@@ -521,7 +566,7 @@ async function HTML(hostname, 网站图标, token) {
     document.addEventListener('DOMContentLoaded', function() { 
       pageLoadTimestamp = calculateTimestamp(); 
       const singleIpInput = document.getElementById('proxyip'); 
-      const rangeIpInput = document.getElementById('proxyipRange'); // Now a textarea
+      const rangeIpInput = document.getElementById('proxyipRange'); // Changed to textarea
       singleIpInput.focus(); 
       
       const urlParams = new URLSearchParams(window.location.search); 
@@ -530,22 +575,20 @@ async function HTML(hostname, 网站图标, token) {
           const currentPath = window.location.pathname; 
           if (currentPath.length > 1) { 
             const pathContent = decodeURIComponent(currentPath.substring(1)); 
-            if (isValidProxyIPFormat(pathContent)) { // Check if path is a single IP/Domain
+            if (isValidProxyIPFormat(pathContent)) { 
                 autoCheckValue = pathContent; 
-            } else if (pathContent.includes('/') || pathContent.includes('-') || pathContent.includes(',')) { // Heuristic for range in path
-                 rangeIpInput.value = pathContent; // Put potential range into textarea
             }
           }
        }
 
-      if (autoCheckValue) { // If single IP/domain for autocheck
+      if (autoCheckValue) { 
         singleIpInput.value = autoCheckValue; 
         const newUrl = new URL(window.location); 
         newUrl.searchParams.delete('autocheck'); 
         newUrl.pathname = '/'; 
         window.history.replaceState({}, '', newUrl); 
         setTimeout(() => { if (!isChecking) { checkInputs(); } }, 500); 
-      } else if (!rangeIpInput.value) { // Only try localStorage if range textarea is also empty
+      } else {
         try { 
             const lastSearch = localStorage.getItem('lastProxyIP'); 
             if (lastSearch) singleIpInput.value = lastSearch; 
@@ -553,7 +596,8 @@ async function HTML(hostname, 网站图标, token) {
       }
       
       singleIpInput.addEventListener('keypress', function(event) { if (event.key === 'Enter' && !isChecking) { checkInputs(); } }); 
-      // For textarea, Enter key creates a new line, which is fine for multi-range input.
+      // For textarea, Enter usually means newline, so we don't add keypress listener for Enter to submit
+      // rangeIpInput.addEventListener('keypress', function(event) { if (event.key === 'Enter' && !isChecking) { checkInputs(); } });
       
       document.addEventListener('click', function(event) { 
         if (event.target.classList.contains('copy-btn')) { 
@@ -597,6 +641,7 @@ async function HTML(hostname, 网站图标, token) {
       return ipv4Regex.test(input) || ipv6Regex.test(input) || ipv6WithPortRegex.test(input) || ipv4WithPortRegex.test(input); 
     }
 
+    // *** MODIFIED parseIPRange (removed internal toast) ***
     function parseIPRange(rangeInput) {
         const ips = [];
         rangeInput = rangeInput.trim();
@@ -604,18 +649,15 @@ async function HTML(hostname, 网站图标, token) {
             const baseIp = rangeInput.split('/')[0];
             const baseParts = baseIp.split('.');
             if (baseParts.length === 4 ) {
-                for (let i = 1; i <= 255; i++) {
+                for (let i = 1; i <= 255; i++) { // Original logic: 1-255. Standard /24 often 0-255 for host part.
                     ips.push(\`\${baseParts[0]}.\${baseParts[1]}.\${baseParts[2]}.\${i}\`);
                 }
-            } else {
-                 // showToast('Invalid CIDR format. Expected x.x.x.0/24.'); // Toast shown by caller
             }
         } 
         else if (/^(\\d{1,3}\\.){3}\\d{1,3}-\\d{1,3}$/.test(rangeInput)) {
             const parts = rangeInput.split('-');
             const baseIpWithLastOctet = parts[0];
             const endOctet = parseInt(parts[1]);
-            
             const ipParts = baseIpWithLastOctet.split('.');
             if (ipParts.length === 4) {
                 const startOctet = parseInt(ipParts[3]);
@@ -624,198 +666,178 @@ async function HTML(hostname, 网站图标, token) {
                     for (let i = startOctet; i <= endOctet; i++) {
                         ips.push(\`\${prefix}.\${i}\`);
                     }
-                } else {
-                    // showToast('Invalid range in x.x.x.A-B format.'); // Toast shown by caller
-                }
-            } else {
-                 // showToast('Invalid x.x.x.A-B range format.'); // Toast shown by caller
+                } // Removed internal toast here
             }
         }
-        // Returns empty array if format is not matched or invalid, caller should check length
         return ips;
     }
     
     function preprocessInput(input) { 
       if (!input) return input; 
-      return input.trim(); 
+      let processed = input.trim(); 
+      if (processed.includes(' ')) { 
+        processed = processed.split(' ')[0]; 
+      }
+      return processed; 
     }
 
+    // *** MODIFIED checkInputs (for multiline range and other minor adjustments) ***
     async function checkInputs() {
       if (isChecking) return;
 
       const singleIpInputEl = document.getElementById('proxyip');
-      const rangeIpInputEl = document.getElementById('proxyipRange'); 
+      const rangeIpInputEl = document.getElementById('proxyipRange'); // Now a textarea
       const resultDiv = document.getElementById('result');
       const rangeResultCard = document.getElementById('rangeResultCard');
-      const rangeResultSummaryEl = document.getElementById('rangeResultSummary');
-      const successfulRangeIPsListEl = document.getElementById('successfulRangeIPsList');
+      const rangeResultSummary = document.getElementById('rangeResultSummary');
       const copyRangeBtn = document.getElementById('copyRangeBtn');
+
       const checkBtn = document.getElementById('checkBtn');
       const btnText = checkBtn.querySelector('.btn-text');
       const spinner = checkBtn.querySelector('.loading-spinner');
 
       const rawSingleInput = singleIpInputEl.value;
       let singleIpToTest = preprocessInput(rawSingleInput);
-
-      const rawRangeInput = rangeIpInputEl.value.trim();
-      const rangeInputsArray = rawRangeInput ? rawRangeInput.split(/[\n, ]+/).map(r => r.trim()).filter(r => r && r.length > 0) : [];
-
+      const rawRangeInput = rangeIpInputEl.value; // Keep rawRangeInput for multiline
 
       if (singleIpToTest && singleIpToTest !== rawSingleInput) {
         singleIpInputEl.value = singleIpToTest;
         showToast('Single IP input auto-corrected.');
       }
-
-      if (!singleIpToTest && rangeInputsArray.length === 0) {
-        showToast('Please enter a single IP/Domain or at least one IP Range.');
-        (rawSingleInput && rawSingleInput.length > 0 ? singleIpInputEl : rangeIpInputEl).focus();
+      
+      if (!singleIpToTest && !rawRangeInput.trim()) {
+        showToast('Please enter a single IP/Domain or an IP Range.');
+        singleIpInputEl.focus();
         return;
       }
-
+      
       const currentTimestamp = calculateTimestamp();
       if (currentTimestamp !== pageLoadTimestamp) {
         const currentHost = window.location.host;
         const currentProtocol = window.location.protocol;
-        let redirectPathVal = singleIpToTest || (rangeInputsArray.length > 0 ? rangeInputsArray[0] : '');
-        const redirectUrl = \`\${currentProtocol}//\${currentHost}/\${encodeURIComponent(redirectPathVal)}\`;
+        const firstRangeLine = rawRangeInput.trim() ? rawRangeInput.split('\n')[0].trim() : '';
+        let redirectPathVal = singleIpToTest || firstRangeLine || '';
+        const redirectUrl = \`\${currentProtocol}//\${currentHost}/\${redirectPathVal ? encodeURIComponent(redirectPathVal) : ''}\`;
         showToast('TOKEN expired, refreshing page...');
         setTimeout(() => { window.location.href = redirectUrl; }, 1000);
         return;
       }
 
       if (singleIpToTest) {
-        try { localStorage.setItem('lastProxyIP', singleIpToTest); } catch (e) {}
+          try { localStorage.setItem('lastProxyIP', singleIpToTest); } catch (e) { console.error("localStorage write error:", e); }
       }
-
+      
       isChecking = true;
       checkBtn.disabled = true;
       btnText.style.display = 'none';
       spinner.style.display = 'inline-block';
-
+      
       resultDiv.innerHTML = ''; 
       resultDiv.classList.remove('show');
-      
-      rangeResultCard.style.display = 'none';
-      if (rangeResultSummaryEl) rangeResultSummaryEl.innerHTML = '';
-      if (successfulRangeIPsListEl) successfulRangeIPsListEl.innerHTML = ''; 
-      if (copyRangeBtn) copyRangeBtn.style.display = 'none';
-      if (rangeChartInstance) {
-          rangeChartInstance.destroy();
-          rangeChartInstance = null;
-      }
-      currentSuccessfulRangeData = []; 
+      // Reset for range results will happen if rawRangeInput is processed
 
       try {
         if (singleIpToTest) {
-          if (isIPAddress(singleIpToTest)) {
-            await checkAndDisplaySingleIP(singleIpToTest, resultDiv);
-          } else {
-            await checkAndDisplayDomain(singleIpToTest, resultDiv);
-          }
+            if (isIPAddress(singleIpToTest)) {
+                await checkAndDisplaySingleIP(singleIpToTest, resultDiv);
+            } else { 
+                await checkAndDisplayDomain(singleIpToTest, resultDiv);
+            }
         }
 
-        if (rangeInputsArray.length > 0) {
-          rangeResultCard.style.display = 'block'; 
-          let overallSuccessCount = 0;
-          let overallCheckedCount = 0;
-          
-          for (let i = 0; i < rangeInputsArray.length; i++) {
-            const currentRangeString = preprocessInput(rangeInputsArray[i]);
-            if (!currentRangeString) continue;
+        // --- MODIFIED: Logic for processing multiple IP ranges ---
+        if (rawRangeInput.trim()) {
+          const rangeStrings = rawRangeInput.split('\n')
+                                       .map(line => line.trim())
+                                       .filter(line => line.length > 0);
 
-            showToast(\`Testing range \${i + 1}/\${rangeInputsArray.length}: \${currentRangeString}\`);
-            
-            if (successfulRangeIPsListEl) {
-                const rangeHeader = document.createElement('h6');
-                rangeHeader.textContent = \`Results for range: \${currentRangeString}\`;
-                rangeHeader.style.marginTop = successfulRangeIPsListEl.children.length > 0 ? '20px' : '0';
-                rangeHeader.style.borderBottom = '1px dashed #ccc';
-                rangeHeader.style.paddingBottom = '4px';
-                rangeHeader.style.marginBottom = '8px';
-                successfulRangeIPsListEl.appendChild(rangeHeader);
-            }
+          if (rangeStrings.length > 0) {
+              rangeResultCard.style.display = 'block';
+              rangeResultSummary.innerHTML = 'Initializing range test...';
+              if (rangeChartInstance) { rangeChartInstance.destroy(); rangeChartInstance = null; }
+              currentSuccessfulRangeIPs = []; 
+              copyRangeBtn.style.display = 'none';
 
-            const ipsInCurrentRange = parseIPRange(currentRangeString);
-            let currentRangeBatchSuccessData = []; 
-            let currentRangeSuccessCountForThisRange = 0;
+              let overallTotalIPsToTest = 0;
+              let overallSuccessfulIPs = 0;
+              let overallCheckedIPs = 0;
+              
+              const allParsedIPsArrays = [];
+              for (const singleRangeStr of rangeStrings) {
+                  const ipsInThisRange = parseIPRange(singleRangeStr);
+                  if (ipsInThisRange.length > 0) {
+                      allParsedIPsArrays.push(ipsInThisRange);
+                      overallTotalIPsToTest += ipsInThisRange.length;
+                  } else {
+                      showToast(\`Warning: Range '\${singleRangeStr}' is invalid or empty. Skipping.\`, 4000);
+                  }
+              }
 
-            if (ipsInCurrentRange.length > 0) {
-              const batchSize = 10;
-              for (let j = 0; j < ipsInCurrentRange.length; j += batchSize) {
-                const batch = ipsInCurrentRange.slice(j, j + batchSize);
-                const batchPromises = batch.map(ip =>
-                  fetchSingleIPCheck(ip + ':443')
-                    .then(async data => {
-                      overallCheckedCount++;
-                      if (data.success) {
-                        overallSuccessCount++;
-                        currentRangeSuccessCountForThisRange++;
-                        const cleanIpForGeo = data.proxyIP.split(':')[0];
-                        const geoData = await getIPInfo(cleanIpForGeo);
-                        const successEntry = { ip: data.proxyIP, port: data.portRemote, geo: geoData };
-                        currentSuccessfulRangeData.push(successEntry); 
-                        currentRangeBatchSuccessData.push(successEntry); 
-                      }
-                      return data;
-                    })
-                    .catch(err => {
-                      overallCheckedCount++;
-                      console.error("Error checking IP in range:", ip, err);
-                      return { success: false, proxyIP: ip, error: err.message };
-                    })
-                );
-                await Promise.all(batchPromises);
-                if (rangeResultSummaryEl) rangeResultSummaryEl.innerHTML = \`Overall - Tested: \${overallCheckedCount} | Successful: \${overallSuccessCount}\`;
-                
-                if (currentRangeBatchSuccessData.length > 0) {
-                     renderSuccessfulRangeIPsList(currentRangeBatchSuccessData, successfulRangeIPsListEl, false); 
-                     currentRangeBatchSuccessData = []; 
+              if (overallTotalIPsToTest > 0) {
+                  showToast(\`Starting test for \${overallTotalIPsToTest} IPs across \${allParsedIPsArrays.length} valid range(s). This may take a while.\`, 5000);
+              } else {
+                  showToast('No valid IPs found in the provided range(s) to test.');
+                  rangeResultCard.style.display = 'none'; 
+              }
+              
+              if (overallTotalIPsToTest > 0) { 
+                for (const ipsInOneRange of allParsedIPsArrays) {
+                    const batchSize = 10; 
+                    for (let i = 0; i < ipsInOneRange.length; i += batchSize) {
+                        const batch = ipsInOneRange.slice(i, i + batchSize);
+                        const batchPromises = batch.map(ip => 
+                            fetchSingleIPCheck(ip + ':443') 
+                                .then(data => {
+                                    overallCheckedIPs++;
+                                    if (data.success) {
+                                        overallSuccessfulIPs++;
+                                        currentSuccessfulRangeIPs.push(data.proxyIP); 
+                                    }
+                                    return data; 
+                                })
+                                .catch(err => {
+                                    overallCheckedIPs++; 
+                                    console.error("Error checking IP in range:", ip, err);
+                                    return {success: false, proxyIP: ip, error: err.message};
+                                })
+                        );
+                        await Promise.all(batchPromises);
+                        
+                        rangeResultSummary.innerHTML = \`Tested: \${overallCheckedIPs}/\${overallTotalIPsToTest} | Total Successful: \${overallSuccessfulIPs}\`;
+                        
+                        if (currentSuccessfulRangeIPs.length > 0) {
+                             updateRangeSuccessChart(currentSuccessfulRangeIPs);
+                             copyRangeBtn.style.display = 'inline-block';
+                        } else {
+                             copyRangeBtn.style.display = 'none';
+                        }
+                        if (overallCheckedIPs < overallTotalIPsToTest) {
+                            await new Promise(resolve => setTimeout(resolve, 200));
+                        }
+                    }
+                }
+                rangeResultSummary.innerHTML = \`All \${allParsedIPsArrays.length} valid range(s) tested. \${overallSuccessfulIPs} of \${overallTotalIPsToTest} IPs were successful.\`;
+                if (currentSuccessfulRangeIPs.length === 0 && overallTotalIPsToTest > 0) {
+                    showToast('No successful IPs found in any of the ranges.');
                 }
               }
-              if(currentRangeSuccessCountForThisRange === 0 && successfulRangeIPsListEl) {
-                const noResultPara = document.createElement('p');
-                noResultPara.textContent = 'No successful IPs found in this range.';
-                noResultPara.style.fontSize = '0.85em';
-                noResultPara.style.color = '#777';
-                noResultPara.style.paddingLeft = '5px';
-                successfulRangeIPsListEl.appendChild(noResultPara);
-              }
-              showToast(\`Range '\${currentRangeString}' test complete. \${currentRangeSuccessCountForThisRange} of \${ipsInCurrentRange.length} IPs were successful.\`);
-            } else if (currentRangeString) {
-              showToast(\`Invalid IP Range format or empty for: \${currentRangeString}\`);
-               if (successfulRangeIPsListEl) {
-                  const errorPara = document.createElement('p');
-                  errorPara.textContent = 'Invalid format or empty range.';
-                  errorPara.style.fontSize = '0.85em';
-                  errorPara.style.color = 'var(--error-color)';
-                  errorPara.style.paddingLeft = '5px';
-                  successfulRangeIPsListEl.appendChild(errorPara);
-               }
-            }
-             if (i < rangeInputsArray.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 300)); 
-             }
-          }
-
-          if (rangeResultSummaryEl) rangeResultSummaryEl.innerHTML = \`All ranges processed. Overall - Tested: \${overallCheckedCount} | Successful: \${overallSuccessCount}\`;
-          
-          if (currentSuccessfulRangeData.length > 0) {
-            updateRangeSuccessChart(currentSuccessfulRangeData.map(item => item.ip + (item.port && parseInt(item.port) !== 443 ? ':' + item.port : '')));
-            if (copyRangeBtn) copyRangeBtn.style.display = 'inline-block';
-          } else {
-            if (rangeChartInstance) { rangeChartInstance.destroy(); rangeChartInstance = null; }
-            if (copyRangeBtn) copyRangeBtn.style.display = 'none';
-            if (rangeInputsArray.length > 0) showToast('No successful IPs found in any of the ranges.');
+          } else if (rawRangeInput.trim()) { 
+               showToast('IP Range input contains no valid ranges after parsing.');
+               rangeResultCard.style.display = 'none';
           }
         }
-
       } catch (err) {
         const errorMsg = \`<div class="result-card result-error"><h3>❌ General Error</h3><p>\${err.message}</p></div>\`;
-        if (resultDiv.innerHTML === '') resultDiv.innerHTML = errorMsg;
-        else if (rangeResultSummaryEl) rangeResultSummaryEl.textContent = \`Error: \${err.message}\`;
-        
-        if (resultDiv.innerHTML !== '') resultDiv.classList.add('show');
-        if (rangeInputsArray.length > 0) rangeResultCard.style.display = 'block';
+        if (resultDiv.innerHTML === '' && (!rawRangeInput.trim() || !document.getElementById('rangeResultCard').style.display || document.getElementById('rangeResultCard').style.display === 'none')){
+             resultDiv.innerHTML = errorMsg;
+             if(resultDiv.innerHTML !== '') resultDiv.classList.add('show');
+        } else if (rawRangeInput.trim() && document.getElementById('rangeResultCard').style.display === 'block') {
+             rangeResultSummary.innerHTML = \`<p style="color:var(--error-color)">Error during processing: \${err.message}</p>\`;
+        } else { 
+             if(resultDiv.innerHTML === '') resultDiv.innerHTML = errorMsg;
+             else resultDiv.innerHTML += errorMsg; 
+             if(resultDiv.innerHTML !== '') resultDiv.classList.add('show');
+        }
       } finally {
         isChecking = false;
         checkBtn.disabled = false;
@@ -824,14 +846,14 @@ async function HTML(hostname, 网站图标, token) {
       }
     }
     
-    function updateRangeSuccessChart(successfulIPsWithPort) { 
+    function updateRangeSuccessChart(successfulIPs) {
         const ctx = document.getElementById('rangeSuccessChart').getContext('2d');
         if (rangeChartInstance) {
             rangeChartInstance.destroy();
         }
         
-        const labels = successfulIPsWithPort; 
-        const dataPoints = successfulIPsWithPort.map(() => 1); 
+        const labels = successfulIPs;
+        const dataPoints = successfulIPs.map(() => 1); 
 
         rangeChartInstance = new Chart(ctx, {
             type: 'bar', 
@@ -861,11 +883,10 @@ async function HTML(hostname, 网站图标, token) {
                     y: { 
                          ticks: {
                              autoSkip: false, 
-                             font: { size: 10 } 
                          },
                          title: {
                              display: true,
-                             text: 'IP Addresses (Overall Successful)'
+                             text: 'IP Addresses'
                          }
                     }
                 },
@@ -887,99 +908,65 @@ async function HTML(hostname, 网站图标, token) {
             }
         });
         const canvas = document.getElementById('rangeSuccessChart');
-        const barHeight = 20; 
-        const newHeight = Math.max(150, labels.length * barHeight); 
+        const barHeight = 25; 
+        const newHeight = Math.max(200, labels.length * barHeight); 
         canvas.style.height = \`\${newHeight}px\`;
         if(rangeChartInstance) rangeChartInstance.resize();
     }
     
-    // Modified renderSuccessfulRangeIPsList
-    function renderSuccessfulRangeIPsList(dataToRender, targetEl, clearTargetCompletelyIfFirstCall = true) {
-        // This function is now designed to append to targetEl under the current range header.
-        // The main clearing of successfulRangeIPsListEl happens in checkInputs.
-        if (!targetEl || dataToRender.length === 0) return;
-        
-        // Find the last UL, assuming it's the one for the current range, or create one if none.
-        let ul = targetEl.querySelector('ul:last-of-type');
-        if (!ul || ul.parentElement !== targetEl && !ul.closest('h6 + ul')) { 
-            // If no ul or last ul is not directly under target (e.g. only headers present)
-            // or we want a new UL for a new section (though headers handle sections now)
-            ul = document.createElement('ul');
-            ul.style.listStyleType = 'none';
-            ul.style.paddingLeft = '0';
-            targetEl.appendChild(ul);
-        }
-
-
-        dataToRender.forEach(item => {
-            const li = document.createElement('li');
-            li.style.marginBottom = '10px';
-            li.style.padding = '6px';
-            li.style.borderBottom = '1px solid #f0f0f0';
-            li.style.display = 'flex';
-            li.style.flexDirection = 'column';
-            li.style.alignItems = 'flex-start';
-
-            let countryText = '(Country N/A)';
-            if (item.geo && item.geo.status === 'success' && item.geo.country) {
-                countryText = \`Country: \${item.geo.country}\`;
-            }
-
-            const ipPortString = item.ip + (item.port && parseInt(item.port) !== 443 ? \`:\${item.port}\` : '');
-
-            li.innerHTML = \`
-                <div style="margin-bottom: 4px; font-size: 0.9em;">\${createCopyButton(ipPortString)}</div>
-                <div style="padding-left: 5px; font-size: 0.85em; color: #444;">\${countryText}</div>
-            \`;
-            ul.appendChild(li);
-        });
-    }
-
     function copySuccessfulRangeIPs() {
-        if (currentSuccessfulRangeData.length > 0) {
-            const textToCopy = currentSuccessfulRangeData.map(item => item.ip + (item.port && parseInt(item.port) !== 443 ? ':' + item.port : '')).join('\\n');
-            copyToClipboard(textToCopy, document.getElementById('copyRangeBtn'), "All successful IPs copied!");
+        if (currentSuccessfulRangeIPs.length > 0) {
+            const textToCopy = currentSuccessfulRangeIPs.join('\\n');
+            copyToClipboard(textToCopy, null, "All successful IPs copied!");
         } else {
-            showToast("No successful IPs from ranges to copy.");
+            showToast("No successful IPs to copy.");
         }
     }
 
     async function fetchSingleIPCheck(proxyipWithOptionalPort) { 
         const requestUrl = \`./check?proxyip=\${encodeURIComponent(proxyipWithOptionalPort)}&token=\${TEMP_TOKEN}\`; 
         const response = await fetch(requestUrl); 
+        if (!response.ok) { // Handle non-JSON error responses from /check if needed
+            const errorText = await response.text();
+            console.error("FetchSingleIPCheck Error:", response.status, errorText);
+            throw new Error(\`Check failed with status \${response.status}: \${errorText.substring(0,100)}\`);
+        }
         return await response.json(); 
     }
 
-    async function checkAndDisplaySingleIP(proxyipInput, resultDiv) { 
-      const proxyTestData = await fetchSingleIPCheck(proxyipInput); 
+    // *** MODIFIED checkAndDisplaySingleIP (country on new line) ***
+    async function checkAndDisplaySingleIP(proxyip, resultDiv) {
+      const data = await fetchSingleIPCheck(proxyip);
       
-      const ipForGeoLookup = proxyipInput.split(':')[0].replace(/[\\[\\]]/g, '');
-      const geoInfo = await getIPInfo(ipForGeoLookup);
-      const geoInfoHTML = formatIPInfo(geoInfo, false); 
+      if (data.success) {
+        const ipInfo = await getIPInfo(data.proxyIP); 
+        const asInfoHTML = formatIPInfo(ipInfo, false); // Will be (Full AS Info)
+        
+        let countryName = 'N/A';
+        if (ipInfo && ipInfo.status === 'success' && ipInfo.country) {
+            countryName = ipInfo.country; // Should be English
+        }
 
-      if (proxyTestData.success) { 
-        const displayIP = proxyTestData.proxyIP + (proxyTestData.portRemote && parseInt(proxyTestData.portRemote) !== 443 ? ':'+proxyTestData.portRemote : '');
         resultDiv.innerHTML = \` 
           <div class="result-card result-success">
             <h3>✅ ProxyIP Valid</h3>
-            <p><strong>🌐 ProxyIP Address:</strong> \${createCopyButton(displayIP)}</p>
-            \${geoInfoHTML ? \`<p style="font-size: 0.9em; color: #333; margin-left: 15px; margin-top: -5px; margin-bottom: 8px;">\${geoInfoHTML}</p>\` : ''}
-            <p><strong>🔌 Port:</strong> \${createCopyButton(proxyTestData.portRemote.toString())}</p>
-            <p><strong>🕒 Check Time:</strong> \${new Date(proxyTestData.timestamp).toLocaleString()}</p>
+            <p><strong>🌐 ProxyIP Address:</strong> \${createCopyButton(data.proxyIP)} \${asInfoHTML}</p>
+            <p><strong>🌍 Country:</strong> \${countryName}</p> 
+            <p><strong>🔌 Port:</strong> \${createCopyButton(data.portRemote.toString())}</p>
+            <p><strong>🕒 Check Time:</strong> \${new Date(data.timestamp).toLocaleString()}</p>
           </div>
-        \`; 
-      } else { 
+        \`;
+      } else {
         resultDiv.innerHTML = \`
           <div class="result-card result-error">
             <h3>❌ ProxyIP Invalid</h3>
-            <p><strong>🌐 IP Address:</strong> \${createCopyButton(proxyipInput)}</p>
-            \${geoInfoHTML ? \`<p style="font-size: 0.9em; color: #333; margin-left: 15px; margin-top: -5px; margin-bottom: 8px;">\${geoInfoHTML}</p>\` : ''}
-            \${proxyTestData.error ? \`<p><strong>Error:</strong> \${proxyTestData.error}</p>\` : ''}
-            <p><strong>🕒 Check Time:</strong> \${new Date(proxyTestData.timestamp).toLocaleString()}</p>
+            <p><strong>🌐 IP Address:</strong> \${createCopyButton(proxyip)}</p>
+            \${data.error ? \`<p><strong>Error:</strong> \${data.error}</p>\` : ''}
+            <p><strong>🕒 Check Time:</strong> \${new Date(data.timestamp).toLocaleString()}</p>
           </div>
-        \`; 
+        \`;
       }
-      resultDiv.classList.add('show'); 
+      resultDiv.classList.add('show');
     }
 
     async function checkAndDisplayDomain(domain, resultDiv) { 
@@ -1019,11 +1006,8 @@ async function HTML(hostname, 网站图标, token) {
           <div class="ip-grid" id="ip-grid" style="max-height: 200px; overflow-y: auto; margin-top:10px; border:1px solid #eee; padding:5px;">
             \${ips.map((ip, index) => \`
               <div class="ip-item" id="ip-item-\${index}">
-                <div> 
-                  \${createCopyButton(ip)}
-                  <span class="status-icon" id="status-icon-\${index}" style="font-size:1.2em;">🔄</span>
-                </div>
-                <div class="geo-info" id="ip-info-\${index}"></div>
+                <div>\${createCopyButton(ip)} <span id="ip-info-\${index}" style="font-size:0.8em; color:#555;"></span></div>
+                <span class="status-icon" id="status-icon-\${index}" style="font-size:1.2em;">🔄</span>
               </div>
             \`).join('')}
           </div>
@@ -1038,9 +1022,9 @@ async function HTML(hostname, 网站图标, token) {
       const validCount = Array.from(ipCheckResults.values()).filter(r => r.success).length; 
       const resultCardHeader = resultDiv.querySelector('.result-card h3'); 
       if(resultCardHeader){ 
-          if (validCount === ips.length) resultCardHeader.textContent = '✅ All Domain IPs Valid'; 
-          else if (validCount === 0) resultCardHeader.textContent = '❌ All Domain IPs Invalid'; 
-          else resultCardHeader.textContent = \`⚠️ Some Domain IPs Valid (\${validCount}/\${ips.length})\`; 
+          if (validCount === ips.length && ips.length > 0) resultCardHeader.textContent = '✅ All Domain IPs Valid'; 
+          else if (validCount === 0 && ips.length > 0) resultCardHeader.textContent = '❌ All Domain IPs Invalid'; 
+          else if (ips.length > 0) resultCardHeader.textContent = \`⚠️ Some Domain IPs Valid (\${validCount}/\${ips.length})\`; 
       }
     }
 
@@ -1061,43 +1045,63 @@ async function HTML(hostname, 网站图标, token) {
     
     async function getIPInfoWithIndex(ip, index) { 
       try {
-        const ipInfo = await getIPInfo(ip.split(':')[0].replace(/[\\[\\]]/g, '')); 
+        const ipInfo = await getIPInfo(ip.split(':')[0]); 
         const infoElement = document.getElementById(\`ip-info-\${index}\`); 
-        if (infoElement) {
-            infoElement.innerHTML = formatIPInfo(ipInfo, true); 
-        }
-      } catch (error) { /* Fail silently */ } 
+        if (infoElement) infoElement.innerHTML = formatIPInfo(ipInfo, true); // Uses modified formatIPInfo for [CC] (AS)
+      } catch (error) { /* Fail silently for optional info */ } 
     }
 
     async function getIPInfo(ip) { 
       try {
         const cleanIP = ip.replace(/[\\[\\]]/g, ''); 
         const response = await fetch(\`./ip-info?ip=\${encodeURIComponent(cleanIP)}&token=\${TEMP_TOKEN}\`); 
+        if (!response.ok) return null; // Handle error from /ip-info
         return await response.json(); 
-      } catch (error) { return null; } 
+      } catch (error) { console.error("getIPInfo error:", error); return null; } 
     }
 
+    // *** MODIFIED formatIPInfo (for [CC](AS) and single (AS)) ***
     function formatIPInfo(ipInfo, isShort = false) {
-      if (!ipInfo || ipInfo.status !== 'success' || !ipInfo.country) { return ''; }
-      const country = ipInfo.country; 
+      if (!ipInfo || ipInfo.status !== 'success') {
+        return '';
+      }
 
-      if (isShort) { 
-        return \`(Country: \${country})\`; 
-      } else { 
-        const as = ipInfo.as || '';
-        let asInfoText = as ? \`, AS: \${as.substring(0, 25)}${as.length > 25 ? '...' : ''}\` : '';
-        return \`(Country: \${country}\${asInfoText})\`; 
+      const asData = ipInfo.as || null;
+
+      if (isShort) {
+        // For lists (e.g., domain IPs): e.g., "[US] (AS Info Shortened)"
+        const countryCode = ipInfo.countryCode || '';
+        let asDisplayShort = null;
+        if (asData) {
+          asDisplayShort = asData.length > 20 ? asData.substring(0, 20) + '...' : asData;
+        }
+
+        let parts = [];
+        if (countryCode) {
+          parts.push(\`[\${countryCode}]\`);
+        }
+        if (asDisplayShort) {
+          parts.push(\`(\${asDisplayShort})\`);
+        }
+
+        if (parts.length > 0) {
+          // Matching the style of the span it's inserted into
+          return \`<span style="font-size:0.8em; color:#555;">\${parts.join(' ')}</span>\`;
+        }
+        return ''; 
+      } else {
+        // For single IP check's AS info part (country is on a new line)
+        // Returns: "(Full AS Info)"
+        if (!asData) return ''; 
+        return \`<span style="font-size:0.85em; color:#555;">(\${asData})</span>\`;
       }
     }
   </script>
 </body>
 </html>
-`; 
+\`; 
 
   return new Response(html, {
     headers: { "content-type": "text/html;charset=UTF-8" } 
   });
-    }
-
-// The rest of the worker code (CheckProxyIP, resolveDomain, etc.) remains the same as in your original file.
-// Only the HTML function and the script within it have been modified.
+          }
