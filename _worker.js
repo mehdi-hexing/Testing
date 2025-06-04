@@ -1257,9 +1257,9 @@ async function HTML(hostname, 网站图标, token) {
       if (isShort) { 
         return \`(Country: \${country})\`; 
       } else { 
-        const as = ipInfo.as || '';
-        let asInfoText = as ? \`, AS: \${as.substring(0, 25)}${as.length > 25 ? '...' : ''}\` : '';
-        return \`(Country: \${country}\${asInfoText})\`; 
+        const asvalue = ipInfo.asvalue || '';
+        let asvalueInfoText = asvalue ? \`, AS: \${asvalue.substring(0, 25)}${asvalue.length > 25 ? '...' : ''}\` : '';
+        return \`(Country: \${country}\${asvalueInfoText})\`; 
       }
     }
   </script>
