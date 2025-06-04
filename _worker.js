@@ -154,11 +154,8 @@ export default {
         const URL = URLs[Math.floor(Math.random() * URLs.length)]; 
         return envKey === 'URL302' ? Response.redirect(URL, 302) : fetch(new Request(URL, request)); 
       } else if (env.TOKEN) { 
-        // *** MODIFICATION: nginx() call is now problematic if nginx is commented out ***
-        // For now, to avoid runtime error if TOKEN is set, let's return a simple text response.
-        // If syntax error is fixed, this part needs to be restored or nginx() uncommented.
-        // return new Response(await nginx(), { 
-        return new Response("nginx function is currently commented out for diagnostics.", {
+        // nginx() function is commented out, returning a placeholder if TOKEN is set.
+        return new Response("nginx function is currently commented out for diagnostics. Main page is unavailable if TOKEN is set without nginx.", {
           headers: {
             'Content-Type': 'text/html; charset=UTF-8', 
           },
@@ -324,7 +321,7 @@ async function 双重哈希(文本) {
   return 第二次十六进制.toLowerCase(); 
 }
 
-// *** MODIFICATION: nginx() function is commented out for diagnostics ***
+// nginx() function is commented out for diagnostics
 // async function nginx() { 
 //   const text = \`
 //     <!DOCTYPE html>
@@ -355,7 +352,7 @@ async function 双重哈希(文本) {
 // }
 
 async function HTML(hostname, 网站图标, token) {
-  const html = `<!DOCTYPE html>
+  const html = \`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -391,6 +388,8 @@ async function HTML(hostname, 网站图标, token) {
     .form-label { display: block; font-weight: 500; margin-bottom: 8px; color: var(--text-primary); width: 100%; max-width: 400px; text-align: left;} 
     .input-wrapper { width: 100%; max-width: 400px; margin-bottom: 15px; }
     .form-input { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); font-size: 0.95rem; box-sizing: border-box; } 
+    /* Make textarea for range input resizable vertically and have a default height */
+    #proxyipRange { min-height: 60px; resize: vertical; }
     .btn-primary { background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); color: white; padding: 12px 25px; border: none; border-radius: var(--border-radius-sm); font-size: 1rem; font-weight: 500; cursor: pointer; width: 100%; max-width: 400px; box-sizing: border-box; } 
     .btn-primary:disabled { background: #bdc3c7; cursor: not-allowed; } 
     .btn-secondary { background-color: var(--bg-secondary); color: var(--text-primary); padding: 8px 15px; border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); font-size: 0.9rem; cursor: pointer; margin-top: 15px; }
@@ -586,6 +585,8 @@ async function HTML(hostname, 网站图标, token) {
        }
 
       if (autoCheckValue) { 
+        // If autocheck value could be a range, this logic might need adjustment
+        // For now, assuming autocheck is for single IP/domain
         singleIpInput.value = autoCheckValue; 
         const newUrl = new URL(window.location); 
         newUrl.searchParams.delete('autocheck'); 
@@ -958,7 +959,6 @@ async function HTML(hostname, 网站图标, token) {
           <div class="result-card result-error">
             <h3>❌ ProxyIP Invalid</h3>
             <p><strong>🌐 IP Address:</strong> \${createCopyButton(proxyip)}</p>
-            <p><strong>🌍 Country:</strong> \${countryName}</p> 
             \${data.error ? \`<p><strong>Error:</strong> \${data.error}</p>\` : ''}
             <p><strong>🕒 Check Time:</strong> \${new Date(data.timestamp).toLocaleString()}</p>
           </div>
@@ -1097,4 +1097,4 @@ async function HTML(hostname, 网站图标, token) {
   return new Response(html, {
     headers: { "content-type": "text/html;charset=UTF-8" } 
   });
-          }
+                                 }
