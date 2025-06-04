@@ -1101,4 +1101,3 @@ async function HTML(hostname, 网站图标, token) {
 
 // The rest of the worker code (CheckProxyIP, resolveDomain, etc.) remains the same as in your original file.
 // Only the HTML function and the script within it have been modified.
-            }
